@@ -1674,46 +1674,57 @@ function ChatOnboardingScreen({ onSelectTrip, onBack }: {
   // Get comprehensive trip summary for Gemini
   const tripsSummary = getTripsSummaryForAI();
 
-  // System prompt for Gemini - succinct travel consultant
-  const systemPrompt = `You are a travel consultant for StoryTrip. Be SUCCINCT - keep responses short (2-3 sentences max per turn).
+  // System prompt for Gemini - balanced travel consultant
+  const systemPrompt = `You are a friendly travel consultant for StoryTrip. Keep responses concise but helpful (3-4 sentences).
 
 STYLE:
-- Brief, friendly, direct
-- One question at a time
-- Skip pleasantries, get to the point
-- Use 1-2 emojis max
+- Warm but efficient
+- Ask one focused question per turn
+- Add a brief helpful insight when relevant
+- Use 1-2 emojis to keep it friendly
 
-CONVERSATION:
-Ask about: destination, dates, budget, travel companions, interests. One topic per message.
+CONVERSATION TOPICS:
+- Where they want to go (destination/region)
+- When they're traveling (dates/season)
+- Who's joining (solo/couple/family/friends)
+- Budget range (budget/mid-range/luxury)
+- What they enjoy (adventure/relaxation/culture/food)
+
+QUICK REPLY OPTIONS - IMPORTANT:
+Always end with 3-4 descriptive options that include context:
+[Quick replies: "Beach in Southeast Asia", "European city break", "Adventure in South America", "Relaxing wellness retreat"]
+
+NOT like this (too vague): [Quick replies: "Option A", "Beach", "City"]
+LIKE this (descriptive): [Quick replies: "Tropical beach getaway", "Cultural city exploration", "Mountain adventure", "Food & wine tour"]
 
 WHEN USER WANTS RECOMMENDATIONS:
 Start with "[RECOMMEND_TRIPS]" then JSON:
 [RECOMMEND_TRIPS]
 {"tripIds": ["6", "26"], "searchTerms": {"tripadvisor": "budget beach Costa Rica", "booking": "beach hotels Costa Rica", "ctrip": "beach packages Asia"}, "destination": "Costa Rica"}
 
-Then write a SHORT response (3-4 lines max):
-🎯 **My picks for you:**
-1. **[Trip]** - why it fits
-2. **[Trip]** - why it fits
+Then write:
+🎯 **Perfect matches for you:**
 
-Check the travel site links above for more options!
+1. **[Trip Name]** - One sentence why it's great for them
+2. **[Trip Name]** - One sentence why it's great for them
+
+💡 **Tip:** [One relevant travel tip]
 
 TRIPS DATABASE (${tripsSummary.length} trips):
 ${JSON.stringify(tripsSummary.slice(0, 40), null, 1)}
 
 RULES:
-- Keep ALL responses under 50 words (except recommendations)
-- One question per message
-- Always end with: [Quick replies: "Option 1", "Option 2", "Option 3"]
-- NO long explanations or travel essays`;
+- 3-4 sentences per response (not too short, not too long)
+- Quick replies must be DESCRIPTIVE (4-6 words each, include destination/activity type)
+- Be helpful but don't ramble`;
 
   // Initialize conversation with Gemini
   useEffect(() => {
     const initChat = async () => {
       setIsTyping(true);
 
-      // Call Gemini for initial greeting - keep it short
-      const greeting = await callGeminiAPI("Greet briefly and ask one simple question: where do they want to go or what kind of trip? Max 2 sentences.");
+      // Call Gemini for initial greeting
+      const greeting = await callGeminiAPI("Greet the user warmly in 2-3 sentences. Ask what kind of trip they're dreaming about. Provide 4 descriptive quick reply options like 'Tropical beach escape' or 'European adventure'.");
 
       const welcomeMessage: ChatMessage = {
         id: 'welcome',
@@ -1758,8 +1769,8 @@ RULES:
     }
 
     try {
-      // Use gemini-2.0-flash-lite for better rate limits
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${GEMINI_API_KEY}`, {
+      // Use gemini-2.0-flash for better quality responses
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2085,8 +2096,8 @@ In the meantime, you can browse our 100+ curated trips by going back and explori
       const welcomeMessage: ChatMessage = {
         id: `assistant-${Date.now()}`,
         role: 'assistant',
-        content: "Fresh start! 🌍 Where do you want to go?",
-        suggestions: ["Beach getaway", "City adventure", "Nature escape", "Surprise me"]
+        content: "Fresh start! 🌍 What kind of trip are you dreaming about?",
+        suggestions: ["Tropical beach escape", "European city adventure", "Mountain & nature retreat", "Cultural food journey"]
       };
       setMessages([welcomeMessage]);
     }, 100);
