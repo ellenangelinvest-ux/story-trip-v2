@@ -1477,14 +1477,14 @@ function LandingScreen({ onStart, onDemo, onAbout, onCreateTrip, onSignIn, onMan
               transition={{ delay: 0.8 }}
               className="flex flex-col gap-6 items-center"
             >
-              {/* Main CTA - Chat Button */}
+              {/* Main CTA - Start My Story Button */}
               <button
                 onClick={onChatStart}
-                className="btn bg-gradient-to-r from-purple-500 via-pink-500 to-terra-500 text-white text-xl px-12 py-5 shadow-2xl shadow-purple-500/40 hover:shadow-3xl hover:scale-105 transition-all flex items-center justify-center gap-3 rounded-2xl"
+                className="btn bg-gradient-to-r from-terra-500 via-terra-600 to-teal-600 text-white text-xl px-12 py-5 shadow-2xl shadow-terra-500/40 hover:shadow-3xl hover:scale-105 transition-all flex items-center justify-center gap-3 rounded-2xl border-2 border-cream-300/20"
               >
-                <MessageCircle className="w-6 h-6" />
-                Tell me what Story Trip you want?
-                <Sparkles className="w-5 h-5" />
+                <Sparkles className="w-6 h-6" />
+                Start my Story
+                <ChevronRight className="w-5 h-5" />
               </button>
 
               {/* Secondary Options */}
@@ -1552,194 +1552,318 @@ function LandingScreen({ onStart, onDemo, onAbout, onCreateTrip, onSignIn, onMan
 }
 
 // ============ CHAT ONBOARDING SCREEN ============
+// Claude API integration for natural travel conversation
+const CLAUDE_API_KEY = import.meta.env.VITE_CLAUDE_API_KEY || '';
+
+interface ChatMessage {
+  id: string;
+  role: 'assistant' | 'user';
+  content: string;
+  suggestions?: string[];
+  trips?: Trip[];
+}
+
 function ChatOnboardingScreen({ trips, onSelectTrip, onBack }: {
   trips: Trip[];
   onSelectTrip: (trip: Trip) => void;
   onBack: () => void;
 }) {
-  // Chat state
-  const [messages, setMessages] = useState<Array<{
-    id: string;
-    type: 'bot' | 'user' | 'options' | 'trips';
-    content: string;
-    options?: Array<{ id: string; label: string; emoji?: string }>;
-    trips?: Trip[];
-  }>>([]);
-  const [currentStep, setCurrentStep] = useState(0);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
+  const [conversationContext, setConversationContext] = useState<string[]>([]);
+  const [readyToRecommend, setReadyToRecommend] = useState(false);
+  const chatEndRef = useState<HTMLDivElement | null>(null);
 
-  // Chat flow questions
-  const chatFlow = [
-    {
-      id: 'welcome',
-      message: "Hey there! I'm your StoryTrip guide. I'll help you find the perfect adventure based on what you're looking for. Ready to discover your next story?",
-      options: [
-        { id: 'ready', label: "Let's do it!", emoji: '🚀' },
-        { id: 'curious', label: "Tell me more first", emoji: '🤔' },
-      ]
-    },
-    {
-      id: 'trip_type',
-      message: "Awesome! First, what kind of experience are you dreaming about?",
-      options: [
-        { id: 'adventure', label: 'Adventure & Thrills', emoji: '🏔️' },
-        { id: 'sports', label: 'Sports & Events', emoji: '🏆' },
-        { id: 'wellness', label: 'Relaxation & Wellness', emoji: '🧘' },
-        { id: 'cultural', label: 'Culture & Discovery', emoji: '🏛️' },
-      ]
-    },
-    {
-      id: 'travel_style',
-      message: "Love it! And how do you like to travel?",
-      options: [
-        { id: 'solo', label: 'Solo explorer', emoji: '🎒' },
-        { id: 'partner', label: 'With a partner', emoji: '💑' },
-        { id: 'friends', label: 'Group of friends', emoji: '👯' },
-        { id: 'flexible', label: 'Open to meeting people', emoji: '🤝' },
-      ]
-    },
-    {
-      id: 'budget',
-      message: "Great choice! What's your budget comfort zone?",
-      options: [
-        { id: 'budget', label: 'Budget-friendly', emoji: '💰' },
-        { id: 'mid', label: 'Mid-range comfort', emoji: '💎' },
-        { id: 'luxury', label: 'Luxury experience', emoji: '👑' },
-        { id: 'flexible', label: 'Flexible', emoji: '🎯' },
-      ]
-    },
-    {
-      id: 'duration',
-      message: "How long are you thinking for this trip?",
-      options: [
-        { id: 'short', label: 'Quick getaway (3-5 days)', emoji: '⚡' },
-        { id: 'week', label: 'About a week', emoji: '📅' },
-        { id: 'extended', label: 'Extended adventure (10+ days)', emoji: '🌍' },
-        { id: 'flexible', label: 'I\'m flexible', emoji: '🎲' },
-      ]
-    },
-    {
-      id: 'vibe',
-      message: "Last one! What vibe are you going for?",
-      options: [
-        { id: 'active', label: 'Action-packed', emoji: '🔥' },
-        { id: 'balanced', label: 'Mix of adventure & chill', emoji: '⚖️' },
-        { id: 'relaxed', label: 'Mostly relaxed', emoji: '🌴' },
-        { id: 'spontaneous', label: 'Surprise me!', emoji: '🎁' },
-      ]
-    }
-  ];
+  // Available trips summary for Claude
+  const tripsSummary = trips.map(t => ({
+    id: t.id,
+    title: t.title,
+    location: t.location,
+    duration: t.duration,
+    price: t.price,
+    tags: t.tags,
+    narrative: t.narrative,
+    sportCategory: t.sportCategory,
+    rating: t.rating
+  }));
 
-  // Initialize with welcome message
+  // System prompt for Claude
+  const systemPrompt = `You are a warm, friendly travel consultant for StoryTrip - a platform that creates narrative-driven travel experiences. Your job is to have a natural conversation to understand what kind of trip the user is looking for.
+
+Ask questions naturally, one at a time, to understand:
+- What type of experience they want (adventure, sports, wellness, cultural, etc.)
+- Who they're traveling with (solo, partner, friends, family)
+- Their budget comfort level
+- How long they want to travel
+- Any specific destinations or activities they're interested in
+- What vibe/energy they want (action-packed, relaxed, balanced)
+
+Be conversational and warm - like a friend helping plan a trip. Use emojis occasionally.
+
+When you feel you have enough information (usually after 3-5 exchanges), respond with EXACTLY this format:
+[READY_TO_RECOMMEND]
+Based on our conversation, I think these trips would be perfect for you!
+
+Available trips to recommend from:
+${JSON.stringify(tripsSummary, null, 2)}
+
+Always provide 2-4 quick reply suggestions for the user to click, but they can also type their own response.`;
+
+  // Initialize conversation
   useEffect(() => {
-    const timer = setTimeout(() => {
-      addBotMessage(chatFlow[0]);
-    }, 500);
-    return () => clearTimeout(timer);
+    const welcomeMessage: ChatMessage = {
+      id: 'welcome',
+      role: 'assistant',
+      content: "Hi there! I'm so excited to help you discover your next adventure. Every great trip starts with a story - and I want to hear yours. What's been on your mind lately? Are you craving adventure, relaxation, or something in between?",
+      suggestions: ['I need an adventure!', 'Looking for relaxation', 'Something with sports', 'Not sure yet, help me explore']
+    };
+    setMessages([welcomeMessage]);
   }, []);
 
-  const addBotMessage = (step: typeof chatFlow[0]) => {
-    setIsTyping(true);
-    setTimeout(() => {
-      setMessages(prev => [...prev, {
-        id: `bot-${Date.now()}`,
-        type: 'bot',
-        content: step.message,
-      }]);
-      setIsTyping(false);
+  // Scroll to bottom on new messages
+  useEffect(() => {
+    chatEndRef[0]?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
-      // Add options after a short delay
-      setTimeout(() => {
-        setMessages(prev => [...prev, {
-          id: `options-${Date.now()}`,
-          type: 'options',
-          content: '',
-          options: step.options,
-        }]);
-      }, 300);
-    }, 1000 + Math.random() * 500);
-  };
-
-  const handleOptionSelect = (optionId: string, optionLabel: string) => {
-    // Add user's response as a message
-    setMessages(prev => prev.filter(m => m.type !== 'options').concat({
-      id: `user-${Date.now()}`,
-      type: 'user',
-      content: optionLabel,
+  // Call Claude API
+  const callClaudeAPI = async (userMessage: string): Promise<string> => {
+    // Build conversation history
+    const conversationHistory = messages.map(m => ({
+      role: m.role,
+      content: m.content
     }));
+    conversationHistory.push({ role: 'user', content: userMessage });
 
-    // Store answer
-    const currentQuestion = chatFlow[currentStep];
-    setUserAnswers(prev => ({ ...prev, [currentQuestion.id]: optionId }));
+    // If no API key, use smart fallback
+    if (!CLAUDE_API_KEY) {
+      return generateSmartResponse(userMessage, conversationContext);
+    }
 
-    // Move to next step or show recommendations
-    const nextStep = currentStep + 1;
-    if (nextStep < chatFlow.length) {
-      setCurrentStep(nextStep);
-      setTimeout(() => addBotMessage(chatFlow[nextStep]), 500);
-    } else {
-      // Show recommendations
-      showRecommendations();
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': CLAUDE_API_KEY,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-3-haiku-20240307',
+          max_tokens: 1024,
+          system: systemPrompt,
+          messages: conversationHistory
+        })
+      });
+
+      if (!response.ok) {
+        console.error('Claude API error:', response.status);
+        return generateSmartResponse(userMessage, conversationContext);
+      }
+
+      const data = await response.json();
+      return data.content[0].text;
+    } catch (error) {
+      console.error('Claude API error:', error);
+      return generateSmartResponse(userMessage, conversationContext);
     }
   };
 
-  const showRecommendations = () => {
-    setIsTyping(true);
-    setTimeout(() => {
-      setMessages(prev => [...prev, {
-        id: `bot-rec-${Date.now()}`,
-        type: 'bot',
-        content: "Perfect! Based on what you told me, here are my top picks for you:",
-      }]);
-      setIsTyping(false);
+  // Smart fallback response generator
+  const generateSmartResponse = (userMessage: string, context: string[]): string => {
+    const lowerMessage = userMessage.toLowerCase();
+    const contextLength = context.length;
 
-      // Calculate recommended trips
-      const recommended = getRecommendedTrips();
+    // Analyze what we know so far
+    const hasAdventure = context.some(c => c.includes('adventure') || c.includes('thrill') || c.includes('active'));
+    const hasSports = context.some(c => c.includes('sport') || c.includes('nba') || c.includes('ski') || c.includes('surf'));
+    const hasWellness = context.some(c => c.includes('relax') || c.includes('wellness') || c.includes('spa') || c.includes('yoga'));
+    const hasCultural = context.some(c => c.includes('cultur') || c.includes('food') || c.includes('history') || c.includes('art'));
+    const hasTravelStyle = context.some(c => c.includes('solo') || c.includes('partner') || c.includes('friend') || c.includes('family'));
+    const hasBudget = context.some(c => c.includes('budget') || c.includes('luxury') || c.includes('mid-range') || c.includes('flexible'));
+    const hasDuration = context.some(c => c.includes('week') || c.includes('days') || c.includes('long') || c.includes('short'));
 
-      setTimeout(() => {
-        setMessages(prev => [...prev, {
-          id: `trips-${Date.now()}`,
-          type: 'trips',
-          content: '',
-          trips: recommended,
-        }]);
-      }, 500);
-    }, 1500);
+    // Check current message for info
+    if (lowerMessage.includes('adventure') || lowerMessage.includes('thrill') || lowerMessage.includes('active')) {
+      context.push('adventure');
+    }
+    if (lowerMessage.includes('sport') || lowerMessage.includes('game') || lowerMessage.includes('ski') || lowerMessage.includes('nba')) {
+      context.push('sports');
+    }
+    if (lowerMessage.includes('relax') || lowerMessage.includes('wellness') || lowerMessage.includes('spa') || lowerMessage.includes('peace')) {
+      context.push('relaxation');
+    }
+    if (lowerMessage.includes('solo') || lowerMessage.includes('alone') || lowerMessage.includes('myself')) {
+      context.push('solo travel');
+    }
+    if (lowerMessage.includes('partner') || lowerMessage.includes('couple') || lowerMessage.includes('romantic')) {
+      context.push('partner travel');
+    }
+    if (lowerMessage.includes('friend') || lowerMessage.includes('group') || lowerMessage.includes('squad')) {
+      context.push('friends travel');
+    }
+    if (lowerMessage.includes('budget') || lowerMessage.includes('cheap') || lowerMessage.includes('affordable')) {
+      context.push('budget conscious');
+    }
+    if (lowerMessage.includes('luxury') || lowerMessage.includes('splurge') || lowerMessage.includes('premium')) {
+      context.push('luxury experience');
+    }
+    if (lowerMessage.includes('week')) {
+      context.push('week-long trip');
+    }
+
+    // After enough context (4+ exchanges), recommend trips
+    if (contextLength >= 3) {
+      return '[READY_TO_RECOMMEND]\nBased on our conversation, I think these trips would be perfect for you!';
+    }
+
+    // Generate appropriate follow-up question
+    if (!hasAdventure && !hasSports && !hasWellness && !hasCultural && contextLength === 0) {
+      if (lowerMessage.includes('adventure')) {
+        return "Adventure calls to you! I love it. Are you thinking more outdoor thrills like skiing or hiking, or maybe something like catching an epic sports event live? What gets your heart racing?";
+      }
+      if (lowerMessage.includes('relax')) {
+        return "Ahh, some well-deserved relaxation sounds perfect. Are you dreaming of beaches and spa treatments, or maybe a peaceful cultural immersion somewhere beautiful?";
+      }
+      if (lowerMessage.includes('sport')) {
+        return "A sports lover! I've got some amazing options - from courtside NBA experiences to powder skiing in Japan. Any particular sport calling your name, or are you open to suggestions?";
+      }
+      if (lowerMessage.includes('not sure') || lowerMessage.includes('help')) {
+        return "No worries, that's what I'm here for! Let me ask you this - when you imagine yourself on this trip, are you more excited about pushing your limits, exploring new cultures, or just taking a deep breath and unwinding?";
+      }
+      return "Tell me more! What kind of experiences make you feel most alive when you travel?";
+    }
+
+    if (!hasTravelStyle) {
+      return "Sounds wonderful! Now tell me - who's joining you on this adventure? Are you flying solo, bringing a partner, or getting the whole crew together?";
+    }
+
+    if (!hasDuration) {
+      return "Great! How much time are you looking to escape for? A quick 3-5 day getaway, a full week, or are you ready for an extended adventure?";
+    }
+
+    if (!hasBudget) {
+      return "Almost there! What's your budget vibe for this trip - keeping it smart and budget-friendly, comfortable mid-range, or ready to splurge on something special?";
+    }
+
+    // Default to recommending
+    return '[READY_TO_RECOMMEND]\nI think I have a great picture of what you\'re looking for! Let me show you my top picks for you.';
   };
 
+  // Generate suggestions based on context
+  const generateSuggestions = (response: string, context: string[]): string[] => {
+    if (response.includes('[READY_TO_RECOMMEND]')) {
+      return [];
+    }
+
+    if (response.toLowerCase().includes('who') || response.toLowerCase().includes('traveling with')) {
+      return ['Solo adventure', 'With my partner', 'Group of friends', 'Flexible - open to meeting people'];
+    }
+
+    if (response.toLowerCase().includes('budget') || response.toLowerCase().includes('spend')) {
+      return ['Budget-friendly please', 'Mid-range comfort', 'Ready to splurge!', 'Flexible on budget'];
+    }
+
+    if (response.toLowerCase().includes('how long') || response.toLowerCase().includes('duration') || response.toLowerCase().includes('time')) {
+      return ['Quick getaway (3-5 days)', 'About a week', 'Extended trip (10+ days)', 'Flexible'];
+    }
+
+    if (response.toLowerCase().includes('sport') || response.toLowerCase().includes('adventure')) {
+      return ['Skiing/Snowboarding', 'Watch live NBA/NFL', 'Surfing', 'Hiking & nature'];
+    }
+
+    if (context.length === 0) {
+      return ['Adventure & thrills', 'Sports events', 'Relaxation & wellness', 'Cultural discovery'];
+    }
+
+    return ['Tell me more', 'Show me options', 'I\'m flexible', 'Surprise me!'];
+  };
+
+  // Get recommended trips based on conversation
   const getRecommendedTrips = (): Trip[] => {
-    // Score trips based on user answers
+    const contextString = conversationContext.join(' ').toLowerCase();
+
     const scoredTrips = trips.map(trip => {
       let score = 0;
 
-      // Match trip type
-      const tripType = userAnswers.trip_type;
-      if (tripType === 'sports' && trip.sportCategory) score += 30;
-      if (tripType === 'adventure' && trip.tags.some(t => ['adventure', 'hiking', 'skiing'].includes(t.toLowerCase()))) score += 30;
-      if (tripType === 'wellness' && trip.tags.some(t => ['wellness', 'spa', 'yoga', 'relaxation'].includes(t.toLowerCase()))) score += 30;
-      if (tripType === 'cultural' && trip.tags.some(t => ['cultural', 'history', 'art', 'food'].includes(t.toLowerCase()))) score += 30;
-
-      // Match vibe
-      const vibe = userAnswers.vibe;
-      if (vibe === 'active' && trip.tags.some(t => ['adventure', 'sports', 'active'].includes(t.toLowerCase()))) score += 20;
-      if (vibe === 'relaxed' && trip.tags.some(t => ['relaxation', 'spa', 'beach'].includes(t.toLowerCase()))) score += 20;
-      if (vibe === 'balanced') score += 10; // Neutral bonus
+      // Match based on conversation context
+      if (contextString.includes('adventure') && trip.tags.some(t => ['adventure', 'hiking', 'skiing'].includes(t.toLowerCase()))) score += 30;
+      if (contextString.includes('sport') && trip.sportCategory) score += 30;
+      if ((contextString.includes('relax') || contextString.includes('wellness')) && trip.tags.some(t => ['wellness', 'spa', 'yoga', 'relaxation'].includes(t.toLowerCase()))) score += 30;
+      if (contextString.includes('cultur') && trip.tags.some(t => ['cultural', 'history', 'art', 'food'].includes(t.toLowerCase()))) score += 30;
+      if (contextString.includes('ski') && trip.sportCategory === 'skiing') score += 40;
+      if (contextString.includes('nba') && trip.sportCategory === 'nba') score += 40;
+      if (contextString.includes('surf') && trip.sportCategory === 'surfing') score += 40;
+      if (contextString.includes('bali') && trip.location.toLowerCase().includes('bali')) score += 50;
+      if (contextString.includes('japan') && trip.location.toLowerCase().includes('japan')) score += 50;
 
       // Rating bonus
       score += trip.rating * 5;
 
-      // Random factor for variety
-      score += Math.random() * 10;
+      // Small random factor
+      score += Math.random() * 5;
 
       return { trip, score };
     });
 
-    // Sort by score and return top 5
     return scoredTrips
       .sort((a, b) => b.score - a.score)
-      .slice(0, 5)
+      .slice(0, 3)
       .map(s => s.trip);
+  };
+
+  // Handle sending message
+  const handleSend = async (messageText?: string) => {
+    const text = messageText || inputValue.trim();
+    if (!text || isTyping) return;
+
+    // Add user message
+    const userMessage: ChatMessage = {
+      id: `user-${Date.now()}`,
+      role: 'user',
+      content: text
+    };
+    setMessages(prev => [...prev, userMessage]);
+    setInputValue('');
+    setConversationContext(prev => [...prev, text]);
+
+    // Show typing indicator
+    setIsTyping(true);
+
+    // Get Claude's response
+    const response = await callClaudeAPI(text);
+
+    // Check if ready to recommend
+    if (response.includes('[READY_TO_RECOMMEND]')) {
+      const cleanResponse = response.replace('[READY_TO_RECOMMEND]', '').trim();
+      const recommended = getRecommendedTrips();
+
+      const assistantMessage: ChatMessage = {
+        id: `assistant-${Date.now()}`,
+        role: 'assistant',
+        content: cleanResponse || "Based on everything you've shared, I've found some perfect trips for you!",
+        trips: recommended
+      };
+      setMessages(prev => [...prev, assistantMessage]);
+      setReadyToRecommend(true);
+    } else {
+      const suggestions = generateSuggestions(response, conversationContext);
+      const assistantMessage: ChatMessage = {
+        id: `assistant-${Date.now()}`,
+        role: 'assistant',
+        content: response,
+        suggestions
+      };
+      setMessages(prev => [...prev, assistantMessage]);
+    }
+
+    setIsTyping(false);
+  };
+
+  // Handle suggestion click
+  const handleSuggestionClick = (suggestion: string) => {
+    handleSend(suggestion);
   };
 
   return (
@@ -1747,25 +1871,28 @@ function ChatOnboardingScreen({ trips, onSelectTrip, onBack }: {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-slate-900"
+      className="min-h-screen bg-gradient-to-br from-cream-100 via-cream-50 to-terra-50"
     >
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-black/20 backdrop-blur-md p-4 flex items-center justify-between border-b border-white/10">
-        <button onClick={onBack} className="flex items-center gap-2 text-white/70 hover:text-white transition-colors">
+      <header className="sticky top-0 z-50 bg-cream-100/90 backdrop-blur-md p-4 flex items-center justify-between border-b border-cream-300">
+        <button onClick={onBack} className="flex items-center gap-2 text-warm-600 hover:text-warm-800 transition-colors">
           <ChevronLeft className="w-5 h-5" />
           Back
         </button>
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
-            <Sparkles className="w-4 h-4 text-white" />
+          <div className="w-10 h-10 bg-gradient-to-r from-teal-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-teal-500/20">
+            <Sparkles className="w-5 h-5 text-white" />
           </div>
-          <span className="text-lg font-display font-bold text-white">Trip Finder</span>
+          <div>
+            <span className="text-lg font-display font-bold text-warm-800">StoryTrip Guide</span>
+            <p className="text-xs text-warm-500">Powered by Claude</p>
+          </div>
         </div>
         <div className="w-20" />
       </header>
 
       {/* Chat Container */}
-      <div className="max-w-2xl mx-auto px-4 py-6 pb-32">
+      <div className="max-w-2xl mx-auto px-4 py-6 pb-40">
         <div className="space-y-4">
           <AnimatePresence>
             {messages.map((message) => (
@@ -1775,100 +1902,98 @@ function ChatOnboardingScreen({ trips, onSelectTrip, onBack }: {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
               >
-                {message.type === 'bot' && (
-                  <div className="flex gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
-                      <Compass className="w-5 h-5 text-white" />
+                {message.role === 'assistant' && (
+                  <div className="space-y-3">
+                    <div className="flex gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-r from-teal-500 to-teal-600 flex items-center justify-center flex-shrink-0 shadow-md">
+                        <Compass className="w-5 h-5 text-white" />
+                      </div>
+                      <div className="bg-white rounded-2xl rounded-tl-none px-5 py-3 max-w-[80%] shadow-md border border-cream-200">
+                        <p className="text-warm-800 leading-relaxed">{message.content}</p>
+                      </div>
                     </div>
-                    <div className="bg-white/10 backdrop-blur-sm rounded-2xl rounded-tl-none px-5 py-3 max-w-[80%]">
-                      <p className="text-white">{message.content}</p>
-                    </div>
+
+                    {/* Suggestions */}
+                    {message.suggestions && message.suggestions.length > 0 && (
+                      <div className="flex flex-wrap gap-2 ml-13 pl-1">
+                        {message.suggestions.map((suggestion, idx) => (
+                          <motion.button
+                            key={idx}
+                            whileHover={{ scale: 1.03 }}
+                            whileTap={{ scale: 0.97 }}
+                            onClick={() => handleSuggestionClick(suggestion)}
+                            className="px-4 py-2 bg-cream-200 hover:bg-cream-300 border border-cream-300 rounded-xl text-warm-700 text-sm transition-all"
+                          >
+                            {suggestion}
+                          </motion.button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Trip Recommendations */}
+                    {message.trips && message.trips.length > 0 && (
+                      <div className="space-y-3 ml-13 pl-1 mt-4">
+                        {message.trips.map((trip, index) => (
+                          <motion.div
+                            key={trip.id}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: index * 0.15 }}
+                            onClick={() => onSelectTrip(trip)}
+                            className="bg-white rounded-2xl overflow-hidden cursor-pointer hover:shadow-lg transition-all group border border-cream-200 shadow-md"
+                          >
+                            <div className="flex">
+                              <div className="w-28 h-28 sm:w-32 sm:h-32 flex-shrink-0 relative">
+                                <img src={trip.image} alt={trip.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                                <div className="absolute top-2 left-2 bg-teal-500 text-white text-xs font-bold px-2 py-1 rounded-lg">
+                                  #{index + 1} Pick
+                                </div>
+                              </div>
+                              <div className="p-3 sm:p-4 flex-1">
+                                <div className="flex items-start justify-between">
+                                  <div>
+                                    <h3 className="text-warm-800 font-semibold">{trip.title}</h3>
+                                    <p className="text-warm-500 text-sm flex items-center gap-1 mt-0.5">
+                                      <MapPin className="w-3 h-3" /> {trip.location.split(',')[0]}
+                                    </p>
+                                  </div>
+                                  <div className="flex items-center gap-1 bg-terra-100 px-2 py-1 rounded-lg">
+                                    <Star className="w-3 h-3 text-terra-500 fill-terra-500" />
+                                    <span className="text-terra-600 text-sm font-medium">{trip.rating}</span>
+                                  </div>
+                                </div>
+                                <div className="flex flex-wrap gap-1 mt-2">
+                                  {trip.tags.slice(0, 3).map(tag => (
+                                    <span key={tag} className="px-2 py-0.5 bg-cream-100 rounded-full text-xs text-warm-600">{tag}</span>
+                                  ))}
+                                </div>
+                                <div className="flex items-center justify-between mt-2">
+                                  <span className="text-warm-400 text-sm">{trip.duration}</span>
+                                  <span className="text-teal-600 font-bold">{trip.price}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </motion.div>
+                        ))}
+
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: 0.5 }}
+                          className="text-center pt-3"
+                        >
+                          <p className="text-warm-500 text-sm">Tap any trip to explore details and book!</p>
+                        </motion.div>
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {message.type === 'user' && (
+                {message.role === 'user' && (
                   <div className="flex justify-end">
-                    <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl rounded-tr-none px-5 py-3 max-w-[80%]">
+                    <div className="bg-gradient-to-r from-teal-500 to-teal-600 rounded-2xl rounded-tr-none px-5 py-3 max-w-[80%] shadow-md">
                       <p className="text-white">{message.content}</p>
                     </div>
-                  </div>
-                )}
-
-                {message.type === 'options' && message.options && (
-                  <div className="flex flex-wrap gap-2 ml-13 pl-13">
-                    {message.options.map((option) => (
-                      <motion.button
-                        key={option.id}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => handleOptionSelect(option.id, `${option.emoji || ''} ${option.label}`)}
-                        className="px-4 py-2.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-white transition-all flex items-center gap-2"
-                      >
-                        {option.emoji && <span className="text-lg">{option.emoji}</span>}
-                        <span>{option.label}</span>
-                      </motion.button>
-                    ))}
-                  </div>
-                )}
-
-                {message.type === 'trips' && message.trips && (
-                  <div className="space-y-4 mt-4">
-                    {message.trips.map((trip, index) => (
-                      <motion.div
-                        key={trip.id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        onClick={() => onSelectTrip(trip)}
-                        className="bg-white/10 backdrop-blur-sm rounded-2xl overflow-hidden cursor-pointer hover:bg-white/15 transition-all group"
-                      >
-                        <div className="flex">
-                          <div className="w-32 h-32 flex-shrink-0">
-                            <img src={trip.image} alt={trip.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                          </div>
-                          <div className="p-4 flex-1">
-                            <div className="flex items-start justify-between">
-                              <div>
-                                <span className="text-xs text-purple-300 font-medium">#{index + 1} Match</span>
-                                <h3 className="text-white font-semibold mt-1">{trip.title}</h3>
-                                <p className="text-white/60 text-sm flex items-center gap-1 mt-1">
-                                  <MapPin className="w-3 h-3" /> {trip.location.split(',')[0]}
-                                </p>
-                              </div>
-                              <div className="flex items-center gap-1 bg-yellow-500/20 px-2 py-1 rounded-lg">
-                                <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
-                                <span className="text-yellow-400 text-sm font-medium">{trip.rating}</span>
-                              </div>
-                            </div>
-                            <div className="flex flex-wrap gap-1.5 mt-2">
-                              {trip.tags.slice(0, 3).map(tag => (
-                                <span key={tag} className="px-2 py-0.5 bg-white/10 rounded-full text-xs text-white/70">{tag}</span>
-                              ))}
-                            </div>
-                            <div className="flex items-center justify-between mt-2">
-                              <span className="text-white/50 text-sm">{trip.duration}</span>
-                              <span className="text-teal-400 font-semibold">{trip.price}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))}
-
-                    {/* CTA Button */}
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.5 }}
-                      className="text-center pt-4"
-                    >
-                      <p className="text-white/60 text-sm mb-3">Click any trip to see details and book!</p>
-                      <button
-                        onClick={onBack}
-                        className="text-white/50 hover:text-white text-sm underline"
-                      >
-                        Or start over with different preferences
-                      </button>
-                    </motion.div>
                   </div>
                 )}
               </motion.div>
@@ -1882,20 +2007,51 @@ function ChatOnboardingScreen({ trips, onSelectTrip, onBack }: {
               animate={{ opacity: 1 }}
               className="flex gap-3"
             >
-              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-teal-500 to-teal-600 flex items-center justify-center flex-shrink-0 shadow-md">
                 <Compass className="w-5 h-5 text-white" />
               </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl rounded-tl-none px-5 py-3">
-                <div className="flex gap-1">
-                  <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              <div className="bg-white rounded-2xl rounded-tl-none px-5 py-3 shadow-md border border-cream-200">
+                <div className="flex gap-1.5">
+                  <div className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <div className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <div className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                 </div>
               </div>
             </motion.div>
           )}
+
+          <div ref={el => { chatEndRef[0] = el; }} />
         </div>
       </div>
+
+      {/* Input Area - Fixed at bottom */}
+      {!readyToRecommend && (
+        <div className="fixed bottom-0 left-0 right-0 bg-cream-100/95 backdrop-blur-md border-t border-cream-300 p-4">
+          <div className="max-w-2xl mx-auto">
+            <div className="flex gap-3">
+              <input
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                placeholder="Tell me about your dream trip..."
+                className="flex-1 px-4 py-3 bg-white border-2 border-cream-300 rounded-xl text-warm-800 placeholder-warm-400 focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-100 transition-all"
+                disabled={isTyping}
+              />
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => handleSend()}
+                disabled={isTyping || !inputValue.trim()}
+                className="px-5 py-3 bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-xl shadow-lg shadow-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                <Send className="w-5 h-5" />
+              </motion.button>
+            </div>
+            <p className="text-center text-warm-400 text-xs mt-2">Type your own message or tap a suggestion above</p>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 }
