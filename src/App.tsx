@@ -10,6 +10,7 @@ import {
   Send, Mail
 } from 'lucide-react';
 import './index.css';
+import { tripDatabase, getTripsSummaryForAI, generateExternalSearchLinks, TripListing } from './tripDatabase';
 
 // ============ TYPES ============
 type AppScreen = 'landing' | 'chat-onboarding' | 'personal-interest' | 'narrative' | 'trips' | 'trip-detail' | 'squad' | 'itinerary' | 'memory-maker' | 'film-studio' | 'demo' | 'about' | 'create-trip' | 'manage-trips';
@@ -425,6 +426,93 @@ const narratives: Narrative[] = [
     gradient: 'from-blue-500 to-indigo-500',
   },
 ];
+
+// Convert TripListing to Trip format for existing screens
+const convertTripListingToTrip = (listing: TripListing): Trip => {
+  // Generate story beats based on the trip duration
+  const midDay = Math.floor(listing.durationDays / 2);
+  const defaultStoryBeats: StoryBeat[] = [
+    {
+      day: 1,
+      title: 'The Journey Begins',
+      description: `Embarking on your ${listing.category} adventure in ${listing.location}`,
+      location: listing.location.split(',')[0],
+      mood: 'rising',
+      activities: ['Arrival and check-in', 'Orientation tour', 'Welcome dinner'],
+      localSpots: ['Local café', 'Neighborhood walk']
+    },
+    {
+      day: midDay,
+      title: 'Finding Your Rhythm',
+      description: listing.highlights[0] || `Immersing yourself in the local experience`,
+      location: listing.location.split(',')[0],
+      mood: 'peak',
+      activities: listing.highlights.slice(0, 3),
+      localSpots: ['Hidden gems', 'Local favorites']
+    },
+    {
+      day: listing.durationDays,
+      title: 'A New Chapter',
+      description: `Returning home transformed by your ${listing.category} experience`,
+      location: listing.location.split(',')[0],
+      mood: 'falling',
+      activities: ['Final experiences', 'Farewells', 'Departure'],
+      localSpots: ['Last-minute visits']
+    }
+  ];
+
+  // Map category to nearby attraction types
+  const getCategoryType = (cat: string): 'restaurant' | 'landmark' | 'activity' | 'shopping' | 'nature' | 'nightlife' => {
+    const typeMap: Record<string, 'restaurant' | 'landmark' | 'activity' | 'shopping' | 'nature' | 'nightlife'> = {
+      'adventure': 'activity',
+      'sports': 'activity',
+      'wellness': 'activity',
+      'cultural': 'landmark',
+      'beach': 'nature',
+      'nature': 'nature',
+      'luxury': 'restaurant',
+      'budget': 'activity',
+      'family': 'activity',
+      'romantic': 'restaurant'
+    };
+    return typeMap[cat] || 'activity';
+  };
+
+  return {
+    id: listing.id,
+    title: listing.title,
+    host: listing.host,
+    location: listing.location,
+    image: listing.image,
+    price: listing.price,
+    dates: listing.dates,
+    duration: listing.duration,
+    rating: listing.rating,
+    tags: listing.tags,
+    narrative: listing.description,
+    storyBeats: defaultStoryBeats,
+    nearbyAttractions: listing.highlights.slice(0, 4).map((h) => ({
+      name: h,
+      type: getCategoryType(listing.category),
+      distance: '5-15 min',
+      rating: 4.5,
+      description: `Experience ${h} during your ${listing.category} trip`,
+      image: listing.image
+    })),
+    localTips: [
+      {
+        category: 'Insider Tips',
+        icon: '💡',
+        items: [
+          `Best time to visit: ${listing.dates.split('-')[0]}`,
+          `Perfect for: ${listing.bestFor.join(', ')}`,
+          `What's included: ${listing.included.slice(0, 2).join(', ')}`
+        ]
+      }
+    ],
+    source: 'platform'
+  };
+};
 
 const trips: Trip[] = [
   {
@@ -1271,8 +1359,11 @@ function App() {
         {screen === 'chat-onboarding' && (
           <ChatOnboardingScreen
             key="chat-onboarding"
-            trips={trips}
-            onSelectTrip={(t) => { setSelectedTrip(t); setScreen('trip-detail'); }}
+            onSelectTrip={(listing) => {
+              const trip = convertTripListingToTrip(listing);
+              setSelectedTrip(trip);
+              setScreen('trip-detail');
+            }}
             onBack={() => setScreen('landing')}
           />
         )}
@@ -1552,73 +1643,104 @@ function LandingScreen({ onStart, onDemo, onAbout, onCreateTrip, onSignIn, onMan
 }
 
 // ============ CHAT ONBOARDING SCREEN ============
-// Claude API integration for natural travel conversation
-const CLAUDE_API_KEY = import.meta.env.VITE_CLAUDE_API_KEY || '';
+// Real Gemini API integration for natural travel conversation
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
 
 interface ChatMessage {
   id: string;
   role: 'assistant' | 'user';
   content: string;
   suggestions?: string[];
-  trips?: Trip[];
+  recommendedTrips?: TripListing[];
+  externalLinks?: Array<{ platform: string; url: string; description: string }>;
+  isEditing?: boolean;
 }
 
-function ChatOnboardingScreen({ trips, onSelectTrip, onBack }: {
-  trips: Trip[];
-  onSelectTrip: (trip: Trip) => void;
+function ChatOnboardingScreen({ onSelectTrip, onBack }: {
+  onSelectTrip: (trip: TripListing) => void;
   onBack: () => void;
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [conversationContext, setConversationContext] = useState<string[]>([]);
-  const [readyToRecommend, setReadyToRecommend] = useState(false);
+  const [conversationHistory, setConversationHistory] = useState<Array<{role: 'user' | 'assistant', content: string}>>([]);
+  const [hasRecommended, setHasRecommended] = useState(false);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState('');
   const chatEndRef = useState<HTMLDivElement | null>(null);
 
-  // Available trips summary for Claude
-  const tripsSummary = trips.map(t => ({
-    id: t.id,
-    title: t.title,
-    location: t.location,
-    duration: t.duration,
-    price: t.price,
-    tags: t.tags,
-    narrative: t.narrative,
-    sportCategory: t.sportCategory,
-    rating: t.rating
-  }));
+  // Get comprehensive trip summary for Gemini
+  const tripsSummary = getTripsSummaryForAI();
 
-  // System prompt for Claude
-  const systemPrompt = `You are a warm, friendly travel consultant for StoryTrip - a platform that creates narrative-driven travel experiences. Your job is to have a natural conversation to understand what kind of trip the user is looking for.
+  // System prompt for Gemini - comprehensive travel consultant
+  const systemPrompt = `You are an expert travel consultant for StoryTrip. Have a natural, friendly conversation to understand what the user is looking for in their perfect trip.
 
-Ask questions naturally, one at a time, to understand:
-- What type of experience they want (adventure, sports, wellness, cultural, etc.)
-- Who they're traveling with (solo, partner, friends, family)
-- Their budget comfort level
+YOUR ROLE:
+- Be warm, conversational, and genuinely helpful - like a knowledgeable friend who loves travel
+- Ask thoughtful follow-up questions based on what they share
+- Share brief insights, travel tips, and destination knowledge when relevant
+- Use occasional emojis to keep it friendly
+- Draw on your knowledge of real destinations, attractions, and travel experiences
+
+CONVERSATION FLOW:
+1. Start by understanding their general travel mood/desires
+2. Dig deeper based on their responses - destinations, activities, budget, timing, who they're traveling with
+3. Keep asking questions and exploring - there's no rush!
+4. Share interesting facts about destinations they mention
+5. The user will click "Find My Trips" button when they're ready for recommendations
+6. DO NOT automatically recommend trips - wait for the user to explicitly ask or click the button
+
+TOPICS TO EXPLORE (naturally, not as a checklist):
+- What kind of experience they want (adventure, relaxation, culture, etc.)
+- Specific destinations or regions they're interested in
+- Who they're traveling with (solo, couple, family, friends)
 - How long they want to travel
-- Any specific destinations or activities they're interested in
-- What vibe/energy they want (action-packed, relaxed, balanced)
+- Budget comfort level
+- Activity level preference
+- Any specific interests (food, history, nature, sports, etc.)
+- Time of year / when they want to travel
+- Past travel experiences they loved
 
-Be conversational and warm - like a friend helping plan a trip. Use emojis occasionally.
+WHEN USER ASKS FOR RECOMMENDATIONS (or clicks Find My Trips):
+Include "[RECOMMEND_TRIPS]" at the start of your message, followed by a JSON object with trip IDs from our database AND search suggestions for external sites:
+[RECOMMEND_TRIPS]
+{"tripIds": ["5", "23", "67"], "searchTerms": ["Japan ski resort packages", "Hokkaido winter tours"], "reasoning": "Brief explanation of why these match"}
 
-When you feel you have enough information (usually after 3-5 exchanges), respond with EXACTLY this format:
-[READY_TO_RECOMMEND]
-Based on our conversation, I think these trips would be perfect for you!
+Then write a warm message explaining your recommendations and mention they can also search on travel sites for more options.
 
-Available trips to recommend from:
-${JSON.stringify(tripsSummary, null, 2)}
+AVAILABLE TRIPS IN OUR DATABASE (${tripsSummary.length} total):
+${JSON.stringify(tripsSummary.slice(0, 40), null, 1)}
+... and more trips covering adventure, sports, wellness, cultural, beach, nature, luxury, budget, family, and romantic categories across 50+ destinations worldwide.
 
-Always provide 2-4 quick reply suggestions for the user to click, but they can also type their own response.`;
+IMPORTANT:
+- Recommend trips from our database by ID when they match well
+- Also suggest what to search for on TripAdvisor, Expedia, Viator for more options
+- DO NOT recommend trips until the user explicitly asks or clicks the Find My Trips button
+- Keep the conversation going - ask follow-up questions, share travel tips, explore their interests
+- Use your knowledge to share interesting destination facts and insider tips
+- Always provide 2-4 quick reply suggestions in brackets at the end like: [Quick replies: "Option 1", "Option 2", "Option 3"]
+- If user wants to change a preference, acknowledge it warmly and ask what they'd like to change`;
 
-  // Initialize conversation
+  // Initialize conversation with Gemini
   useEffect(() => {
-    const welcomeMessage: ChatMessage = {
-      id: 'welcome',
-      role: 'assistant',
-      content: "Hi there! I'm so excited to help you discover your next adventure. Every great trip starts with a story - and I want to hear yours. What's been on your mind lately? Are you craving adventure, relaxation, or something in between?",
-      suggestions: ['I need an adventure!', 'Looking for relaxation', 'Something with sports', 'Not sure yet, help me explore']
+    const initChat = async () => {
+      setIsTyping(true);
+
+      // Call Claude for initial greeting
+      const greeting = await callGeminiAPI("Start the conversation by warmly greeting the user and asking what kind of travel experience they're dreaming about. Keep it brief and engaging.");
+
+      const welcomeMessage: ChatMessage = {
+        id: 'welcome',
+        role: 'assistant',
+        content: greeting.content,
+        suggestions: greeting.suggestions
+      };
+      setMessages([welcomeMessage]);
+      setConversationHistory([{ role: 'assistant', content: greeting.content }]);
+      setIsTyping(false);
     };
-    setMessages([welcomeMessage]);
+
+    initChat();
   }, []);
 
   // Scroll to bottom on new messages
@@ -1626,191 +1748,234 @@ Always provide 2-4 quick reply suggestions for the user to click, but they can a
     chatEndRef[0]?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Call Claude API
-  const callClaudeAPI = async (userMessage: string): Promise<string> => {
-    // Build conversation history
-    const conversationHistory = messages.map(m => ({
-      role: m.role,
-      content: m.content
+  // Call Gemini API
+  const callGeminiAPI = async (userMessage: string): Promise<{
+    content: string;
+    suggestions: string[];
+    tripIds?: string[];
+    reasoning?: string;
+  }> => {
+    // Build conversation history for Gemini format
+    const geminiHistory = conversationHistory.map(msg => ({
+      role: msg.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: msg.content }]
     }));
-    conversationHistory.push({ role: 'user', content: userMessage });
 
-    // If no API key, use smart fallback
-    if (!CLAUDE_API_KEY) {
-      return generateSmartResponse(userMessage, conversationContext);
+    // If no API key, use fallback
+    if (!GEMINI_API_KEY) {
+      console.log('No Gemini API key found. Key value:', GEMINI_API_KEY ? 'exists' : 'empty');
+      return {
+        content: "I'm having trouble connecting to my AI brain. Please make sure the Gemini API key is set up correctly in Vercel. Go to Settings → Environment Variables and add VITE_GEMINI_API_KEY, then redeploy.",
+        suggestions: ["Try again", "Go back"]
+      };
     }
 
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      // Use gemini-1.5-flash for better stability
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': CLAUDE_API_KEY,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true'
         },
         body: JSON.stringify({
-          model: 'claude-3-haiku-20240307',
-          max_tokens: 1024,
-          system: systemPrompt,
-          messages: conversationHistory
+          contents: [
+            // System instruction as first message
+            {
+              role: 'user',
+              parts: [{ text: systemPrompt }]
+            },
+            {
+              role: 'model',
+              parts: [{ text: 'I understand. I am a travel consultant for StoryTrip. I will have natural conversations, ask thoughtful questions, share travel insights, and recommend trips from our database when appropriate.' }]
+            },
+            // Previous conversation history
+            ...geminiHistory,
+            // Current user message
+            {
+              role: 'user',
+              parts: [{ text: userMessage }]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.9,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 1500,
+          }
         })
       });
 
       if (!response.ok) {
-        console.error('Claude API error:', response.status);
-        return generateSmartResponse(userMessage, conversationContext);
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Gemini API error:', response.status, errorData);
+
+        // Handle rate limiting (429 error)
+        if (response.status === 429) {
+          return {
+            content: "I'm getting a lot of requests right now! Please wait a few seconds and try again. In the meantime, tell me more about what you're looking for in your trip!",
+            suggestions: ["Beach vacation", "City adventure", "Nature escape", "Cultural trip"]
+          };
+        }
+
+        return {
+          content: `Oops! I got an error from Gemini (${response.status}). ${errorData?.error?.message || 'Please check your API key is valid.'}`,
+          suggestions: ["Try again"]
+        };
       }
 
       const data = await response.json();
-      return data.content[0].text;
+      const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+      if (!responseText) {
+        console.error('Empty Gemini response:', data);
+        return {
+          content: "I received an empty response. Let me try again - what kind of trip are you dreaming about?",
+          suggestions: ["Adventure travel", "Relaxing getaway", "Cultural exploration"]
+        };
+      }
+
+      return parseGeminiResponse(responseText);
     } catch (error) {
-      console.error('Claude API error:', error);
-      return generateSmartResponse(userMessage, conversationContext);
+      console.error('Gemini API error:', error);
+      return {
+        content: `Connection error: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again!`,
+        suggestions: ["Try again"]
+      };
     }
   };
 
-  // Smart fallback response generator
-  const generateSmartResponse = (userMessage: string, context: string[]): string => {
-    const lowerMessage = userMessage.toLowerCase();
-    const contextLength = context.length;
+  // Parse Gemini response (same logic as before)
+  const parseGeminiResponse = (text: string): {
+    content: string;
+    suggestions: string[];
+    tripIds?: string[];
+    reasoning?: string;
+  } => {
+    let content = text;
+    let suggestions: string[] = [];
+    let tripIds: string[] | undefined;
+    let reasoning: string | undefined;
 
-    // Analyze what we know so far
-    const hasAdventure = context.some(c => c.includes('adventure') || c.includes('thrill') || c.includes('active'));
-    const hasSports = context.some(c => c.includes('sport') || c.includes('nba') || c.includes('ski') || c.includes('surf'));
-    const hasWellness = context.some(c => c.includes('relax') || c.includes('wellness') || c.includes('spa') || c.includes('yoga'));
-    const hasCultural = context.some(c => c.includes('cultur') || c.includes('food') || c.includes('history') || c.includes('art'));
-    const hasTravelStyle = context.some(c => c.includes('solo') || c.includes('partner') || c.includes('friend') || c.includes('family'));
-    const hasBudget = context.some(c => c.includes('budget') || c.includes('luxury') || c.includes('mid-range') || c.includes('flexible'));
-    const hasDuration = context.some(c => c.includes('week') || c.includes('days') || c.includes('long') || c.includes('short'));
+    // Check for trip recommendations
+    if (text.includes('[RECOMMEND_TRIPS]')) {
+      const parts = text.split('[RECOMMEND_TRIPS]');
+      content = parts[0].trim();
 
-    // Check current message for info
-    if (lowerMessage.includes('adventure') || lowerMessage.includes('thrill') || lowerMessage.includes('active')) {
-      context.push('adventure');
-    }
-    if (lowerMessage.includes('sport') || lowerMessage.includes('game') || lowerMessage.includes('ski') || lowerMessage.includes('nba')) {
-      context.push('sports');
-    }
-    if (lowerMessage.includes('relax') || lowerMessage.includes('wellness') || lowerMessage.includes('spa') || lowerMessage.includes('peace')) {
-      context.push('relaxation');
-    }
-    if (lowerMessage.includes('solo') || lowerMessage.includes('alone') || lowerMessage.includes('myself')) {
-      context.push('solo travel');
-    }
-    if (lowerMessage.includes('partner') || lowerMessage.includes('couple') || lowerMessage.includes('romantic')) {
-      context.push('partner travel');
-    }
-    if (lowerMessage.includes('friend') || lowerMessage.includes('group') || lowerMessage.includes('squad')) {
-      context.push('friends travel');
-    }
-    if (lowerMessage.includes('budget') || lowerMessage.includes('cheap') || lowerMessage.includes('affordable')) {
-      context.push('budget conscious');
-    }
-    if (lowerMessage.includes('luxury') || lowerMessage.includes('splurge') || lowerMessage.includes('premium')) {
-      context.push('luxury experience');
-    }
-    if (lowerMessage.includes('week')) {
-      context.push('week-long trip');
-    }
-
-    // After enough context (4+ exchanges), recommend trips
-    if (contextLength >= 3) {
-      return '[READY_TO_RECOMMEND]\nBased on our conversation, I think these trips would be perfect for you!';
-    }
-
-    // Generate appropriate follow-up question
-    if (!hasAdventure && !hasSports && !hasWellness && !hasCultural && contextLength === 0) {
-      if (lowerMessage.includes('adventure')) {
-        return "Adventure calls to you! I love it. Are you thinking more outdoor thrills like skiing or hiking, or maybe something like catching an epic sports event live? What gets your heart racing?";
+      try {
+        // Extract JSON from the recommendation part
+        const jsonMatch = parts[1].match(/\{[\s\S]*?\}/);
+        if (jsonMatch) {
+          const recData = JSON.parse(jsonMatch[0]);
+          tripIds = recData.tripIds;
+          reasoning = recData.reasoning;
+          // Get the message after the JSON
+          const afterJson = parts[1].substring(parts[1].indexOf('}') + 1).trim();
+          if (afterJson) {
+            content = afterJson;
+          }
+        }
+      } catch (e) {
+        console.error('Error parsing recommendations:', e);
       }
-      if (lowerMessage.includes('relax')) {
-        return "Ahh, some well-deserved relaxation sounds perfect. Are you dreaming of beaches and spa treatments, or maybe a peaceful cultural immersion somewhere beautiful?";
-      }
-      if (lowerMessage.includes('sport')) {
-        return "A sports lover! I've got some amazing options - from courtside NBA experiences to powder skiing in Japan. Any particular sport calling your name, or are you open to suggestions?";
-      }
-      if (lowerMessage.includes('not sure') || lowerMessage.includes('help')) {
-        return "No worries, that's what I'm here for! Let me ask you this - when you imagine yourself on this trip, are you more excited about pushing your limits, exploring new cultures, or just taking a deep breath and unwinding?";
-      }
-      return "Tell me more! What kind of experiences make you feel most alive when you travel?";
     }
 
-    if (!hasTravelStyle) {
-      return "Sounds wonderful! Now tell me - who's joining you on this adventure? Are you flying solo, bringing a partner, or getting the whole crew together?";
+    // Extract quick reply suggestions
+    const suggestionMatch = text.match(/\[Quick replies?:\s*"([^"]+)"(?:,\s*"([^"]+)")?(?:,\s*"([^"]+)")?(?:,\s*"([^"]+)")?\]/i);
+    if (suggestionMatch) {
+      suggestions = suggestionMatch.slice(1).filter(Boolean) as string[];
+      content = content.replace(/\[Quick replies?:.*?\]/i, '').trim();
     }
 
-    if (!hasDuration) {
-      return "Great! How much time are you looking to escape for? A quick 3-5 day getaway, a full week, or are you ready for an extended adventure?";
-    }
-
-    if (!hasBudget) {
-      return "Almost there! What's your budget vibe for this trip - keeping it smart and budget-friendly, comfortable mid-range, or ready to splurge on something special?";
-    }
-
-    // Default to recommending
-    return '[READY_TO_RECOMMEND]\nI think I have a great picture of what you\'re looking for! Let me show you my top picks for you.';
+    return { content, suggestions, tripIds, reasoning };
   };
 
-  // Generate suggestions based on context
-  const generateSuggestions = (response: string, context: string[]): string[] => {
-    if (response.includes('[READY_TO_RECOMMEND]')) {
-      return [];
-    }
+  // Simple fallback when no API key - just show error
+  const generateFallbackResponse = (): string => {
+    return `I'm sorry, but I need a Gemini API key to have a real conversation with you. Please add your Gemini API key in Vercel settings to enable AI-powered travel recommendations.
 
-    if (response.toLowerCase().includes('who') || response.toLowerCase().includes('traveling with')) {
-      return ['Solo adventure', 'With my partner', 'Group of friends', 'Flexible - open to meeting people'];
-    }
+In the meantime, you can browse our 100+ curated trips by going back and exploring the trip listings!
 
-    if (response.toLowerCase().includes('budget') || response.toLowerCase().includes('spend')) {
-      return ['Budget-friendly please', 'Mid-range comfort', 'Ready to splurge!', 'Flexible on budget'];
-    }
-
-    if (response.toLowerCase().includes('how long') || response.toLowerCase().includes('duration') || response.toLowerCase().includes('time')) {
-      return ['Quick getaway (3-5 days)', 'About a week', 'Extended trip (10+ days)', 'Flexible'];
-    }
-
-    if (response.toLowerCase().includes('sport') || response.toLowerCase().includes('adventure')) {
-      return ['Skiing/Snowboarding', 'Watch live NBA/NFL', 'Surfing', 'Hiking & nature'];
-    }
-
-    if (context.length === 0) {
-      return ['Adventure & thrills', 'Sports events', 'Relaxation & wellness', 'Cultural discovery'];
-    }
-
-    return ['Tell me more', 'Show me options', 'I\'m flexible', 'Surprise me!'];
+[Quick replies: "Go back to browse trips"]`;
   };
 
-  // Get recommended trips based on conversation
-  const getRecommendedTrips = (): Trip[] => {
-    const contextString = conversationContext.join(' ').toLowerCase();
+  // Start editing a message
+  const startEditing = (messageId: string, content: string) => {
+    setEditingMessageId(messageId);
+    setEditValue(content);
+  };
 
-    const scoredTrips = trips.map(trip => {
-      let score = 0;
+  // Cancel editing
+  const cancelEditing = () => {
+    setEditingMessageId(null);
+    setEditValue('');
+  };
 
-      // Match based on conversation context
-      if (contextString.includes('adventure') && trip.tags.some(t => ['adventure', 'hiking', 'skiing'].includes(t.toLowerCase()))) score += 30;
-      if (contextString.includes('sport') && trip.sportCategory) score += 30;
-      if ((contextString.includes('relax') || contextString.includes('wellness')) && trip.tags.some(t => ['wellness', 'spa', 'yoga', 'relaxation'].includes(t.toLowerCase()))) score += 30;
-      if (contextString.includes('cultur') && trip.tags.some(t => ['cultural', 'history', 'art', 'food'].includes(t.toLowerCase()))) score += 30;
-      if (contextString.includes('ski') && trip.sportCategory === 'skiing') score += 40;
-      if (contextString.includes('nba') && trip.sportCategory === 'nba') score += 40;
-      if (contextString.includes('surf') && trip.sportCategory === 'surfing') score += 40;
-      if (contextString.includes('bali') && trip.location.toLowerCase().includes('bali')) score += 50;
-      if (contextString.includes('japan') && trip.location.toLowerCase().includes('japan')) score += 50;
+  // Save edited message and regenerate response
+  const saveEdit = async (messageId: string) => {
+    if (!editValue.trim()) return;
 
-      // Rating bonus
-      score += trip.rating * 5;
+    // Find the index of the message being edited
+    const messageIndex = messages.findIndex(m => m.id === messageId);
+    if (messageIndex === -1) return;
 
-      // Small random factor
-      score += Math.random() * 5;
+    // Remove all messages after this one (including AI responses)
+    const newMessages = messages.slice(0, messageIndex);
 
-      return { trip, score };
-    });
+    // Update the edited message
+    const editedMessage: ChatMessage = {
+      id: messageId,
+      role: 'user',
+      content: editValue.trim()
+    };
+    newMessages.push(editedMessage);
+    setMessages(newMessages);
 
-    return scoredTrips
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 3)
-      .map(s => s.trip);
+    // Update conversation history
+    const historyIndex = Math.floor(messageIndex / 2); // Approximate history index
+    const newHistory = conversationHistory.slice(0, historyIndex * 2);
+    newHistory.push({ role: 'user', content: editValue.trim() });
+    setConversationHistory(newHistory);
+
+    // Reset editing state
+    setEditingMessageId(null);
+    setEditValue('');
+    setHasRecommended(false);
+
+    // Get new response from Gemini
+    setIsTyping(true);
+    const response = await callGeminiAPI(editValue.trim());
+
+    // Update conversation history with response
+    setConversationHistory(prev => [...prev, { role: 'assistant', content: response.content }]);
+
+    // Add response
+    if (response.tripIds && response.tripIds.length > 0) {
+      const recommendedTrips = response.tripIds
+        .map(id => tripDatabase.find(t => t.id === id))
+        .filter(Boolean) as TripListing[];
+
+      const externalLinks = generateExternalSearchLinks({});
+
+      const assistantMessage: ChatMessage = {
+        id: `assistant-${Date.now()}`,
+        role: 'assistant',
+        content: response.content,
+        recommendedTrips,
+        externalLinks
+      };
+      setMessages(prev => [...prev, assistantMessage]);
+      setHasRecommended(true);
+    } else {
+      const assistantMessage: ChatMessage = {
+        id: `assistant-${Date.now()}`,
+        role: 'assistant',
+        content: response.content,
+        suggestions: response.suggestions
+      };
+      setMessages(prev => [...prev, assistantMessage]);
+    }
+
+    setIsTyping(false);
   };
 
   // Handle sending message
@@ -1826,34 +1991,43 @@ Always provide 2-4 quick reply suggestions for the user to click, but they can a
     };
     setMessages(prev => [...prev, userMessage]);
     setInputValue('');
-    setConversationContext(prev => [...prev, text]);
+
+    // Update conversation history
+    setConversationHistory(prev => [...prev, { role: 'user', content: text }]);
 
     // Show typing indicator
     setIsTyping(true);
 
     // Get Claude's response
-    const response = await callClaudeAPI(text);
+    const response = await callGeminiAPI(text);
 
-    // Check if ready to recommend
-    if (response.includes('[READY_TO_RECOMMEND]')) {
-      const cleanResponse = response.replace('[READY_TO_RECOMMEND]', '').trim();
-      const recommended = getRecommendedTrips();
+    // Update conversation history with response
+    setConversationHistory(prev => [...prev, { role: 'assistant', content: response.content }]);
+
+    // Check if we have trip recommendations
+    if (response.tripIds && response.tripIds.length > 0) {
+      const recommendedTrips = response.tripIds
+        .map(id => tripDatabase.find(t => t.id === id))
+        .filter(Boolean) as TripListing[];
+
+      // Generate external links
+      const externalLinks = generateExternalSearchLinks({});
 
       const assistantMessage: ChatMessage = {
         id: `assistant-${Date.now()}`,
         role: 'assistant',
-        content: cleanResponse || "Based on everything you've shared, I've found some perfect trips for you!",
-        trips: recommended
+        content: response.content,
+        recommendedTrips,
+        externalLinks
       };
       setMessages(prev => [...prev, assistantMessage]);
-      setReadyToRecommend(true);
+      setHasRecommended(true);
     } else {
-      const suggestions = generateSuggestions(response, conversationContext);
       const assistantMessage: ChatMessage = {
         id: `assistant-${Date.now()}`,
         role: 'assistant',
-        content: response,
-        suggestions
+        content: response.content,
+        suggestions: response.suggestions
       };
       setMessages(prev => [...prev, assistantMessage]);
     }
@@ -1885,7 +2059,7 @@ Always provide 2-4 quick reply suggestions for the user to click, but they can a
           </div>
           <div>
             <span className="text-lg font-display font-bold text-warm-800">StoryTrip Guide</span>
-            <p className="text-xs text-warm-500">Powered by Claude</p>
+            <p className="text-xs text-warm-500">Powered by Gemini</p>
           </div>
         </div>
         <div className="w-20" />
@@ -1931,9 +2105,9 @@ Always provide 2-4 quick reply suggestions for the user to click, but they can a
                     )}
 
                     {/* Trip Recommendations */}
-                    {message.trips && message.trips.length > 0 && (
+                    {message.recommendedTrips && message.recommendedTrips.length > 0 && (
                       <div className="space-y-3 ml-13 pl-1 mt-4">
-                        {message.trips.map((trip, index) => (
+                        {message.recommendedTrips.map((trip, index) => (
                           <motion.div
                             key={trip.id}
                             initial={{ opacity: 0, x: -20 }}
@@ -1954,7 +2128,7 @@ Always provide 2-4 quick reply suggestions for the user to click, but they can a
                                   <div>
                                     <h3 className="text-warm-800 font-semibold">{trip.title}</h3>
                                     <p className="text-warm-500 text-sm flex items-center gap-1 mt-0.5">
-                                      <MapPin className="w-3 h-3" /> {trip.location.split(',')[0]}
+                                      <MapPin className="w-3 h-3" /> {trip.location}
                                     </p>
                                   </div>
                                   <div className="flex items-center gap-1 bg-terra-100 px-2 py-1 rounded-lg">
@@ -1984,16 +2158,83 @@ Always provide 2-4 quick reply suggestions for the user to click, but they can a
                         >
                           <p className="text-warm-500 text-sm">Tap any trip to explore details and book!</p>
                         </motion.div>
+
+                        {/* External Platform Links */}
+                        {message.externalLinks && message.externalLinks.length > 0 && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.6 }}
+                            className="mt-4 pt-4 border-t border-cream-200"
+                          >
+                            <p className="text-warm-600 text-sm font-medium mb-3">Explore more options on:</p>
+                            <div className="flex flex-wrap gap-2">
+                              {message.externalLinks.map((link, idx) => (
+                                <a
+                                  key={idx}
+                                  href={link.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="px-3 py-2 bg-cream-100 hover:bg-cream-200 border border-cream-300 rounded-lg text-warm-700 text-sm transition-all flex items-center gap-2"
+                                >
+                                  <Globe className="w-4 h-4" />
+                                  {link.platform}
+                                </a>
+                              ))}
+                            </div>
+                          </motion.div>
+                        )}
                       </div>
                     )}
                   </div>
                 )}
 
                 {message.role === 'user' && (
-                  <div className="flex justify-end">
-                    <div className="bg-gradient-to-r from-teal-500 to-teal-600 rounded-2xl rounded-tr-none px-5 py-3 max-w-[80%] shadow-md">
-                      <p className="text-white">{message.content}</p>
-                    </div>
+                  <div className="flex justify-end group">
+                    {editingMessageId === message.id ? (
+                      // Edit mode
+                      <div className="max-w-[85%] w-full">
+                        <textarea
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          className="w-full px-4 py-3 bg-white border-2 border-teal-400 rounded-xl text-warm-800 focus:outline-none focus:ring-2 focus:ring-teal-100 resize-none"
+                          rows={3}
+                          autoFocus
+                        />
+                        <div className="flex justify-end gap-2 mt-2">
+                          <button
+                            onClick={cancelEditing}
+                            className="px-4 py-2 text-warm-600 hover:text-warm-800 text-sm transition-colors"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={() => saveEdit(message.id)}
+                            disabled={!editValue.trim() || isTyping}
+                            className="px-4 py-2 bg-teal-500 text-white rounded-lg text-sm hover:bg-teal-600 disabled:opacity-50 transition-colors"
+                          >
+                            Save & Regenerate
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      // Display mode with edit button
+                      <div className="flex items-start gap-2">
+                        <button
+                          onClick={() => startEditing(message.id, message.content)}
+                          className="opacity-0 group-hover:opacity-100 p-2 text-warm-400 hover:text-warm-600 transition-all"
+                          title="Edit message"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                            <path d="m15 5 4 4"/>
+                          </svg>
+                        </button>
+                        <div className="bg-gradient-to-r from-teal-500 to-teal-600 rounded-2xl rounded-tr-none px-5 py-3 max-w-[80%] shadow-md">
+                          <p className="text-white">{message.content}</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </motion.div>
@@ -2025,7 +2266,7 @@ Always provide 2-4 quick reply suggestions for the user to click, but they can a
       </div>
 
       {/* Input Area - Fixed at bottom */}
-      {!readyToRecommend && (
+      {!hasRecommended && (
         <div className="fixed bottom-0 left-0 right-0 bg-cream-100/95 backdrop-blur-md border-t border-cream-300 p-4">
           <div className="max-w-2xl mx-auto">
             <div className="flex gap-3">
@@ -2048,7 +2289,9 @@ Always provide 2-4 quick reply suggestions for the user to click, but they can a
                 <Send className="w-5 h-5" />
               </motion.button>
             </div>
-            <p className="text-center text-warm-400 text-xs mt-2">Type your own message or tap a suggestion above</p>
+            <p className="text-center text-warm-400 text-xs mt-2">
+              Chat naturally - I'll recommend trips when I understand what you're looking for. Hover over your messages to edit them.
+            </p>
           </div>
         </div>
       )}
