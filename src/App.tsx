@@ -1667,6 +1667,8 @@ function ChatOnboardingScreen({ onSelectTrip, onBack }: {
   const [hasRecommended, setHasRecommended] = useState(false);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
+  const [lastRequestTime, setLastRequestTime] = useState(0);
+  const [isRateLimited, setIsRateLimited] = useState(false);
   const chatEndRef = useState<HTMLDivElement | null>(null);
 
   // Get comprehensive trip summary for Gemini
@@ -1811,9 +1813,12 @@ IMPORTANT:
 
         // Handle rate limiting (429 error)
         if (response.status === 429) {
+          setIsRateLimited(true);
+          // Clear rate limit after 30 seconds
+          setTimeout(() => setIsRateLimited(false), 30000);
           return {
-            content: "I'm getting a lot of requests right now! Please wait a few seconds and try again. In the meantime, tell me more about what you're looking for in your trip!",
-            suggestions: ["Beach vacation", "City adventure", "Nature escape", "Cultural trip"]
+            content: "I'm getting a lot of requests right now. Please wait about 30 seconds before sending another message. The Gemini API has rate limits on free tier usage.",
+            suggestions: [] // No suggestions to prevent more requests
           };
         }
 
@@ -1982,6 +1987,26 @@ In the meantime, you can browse our 100+ curated trips by going back and explori
   const handleSend = async (messageText?: string) => {
     const text = messageText || inputValue.trim();
     if (!text || isTyping) return;
+
+    // Check rate limit - require 3 seconds between requests
+    const now = Date.now();
+    if (now - lastRequestTime < 3000) {
+      return; // Silently ignore if too fast
+    }
+
+    // Check if rate limited from 429 error
+    if (isRateLimited) {
+      const rateLimitMessage: ChatMessage = {
+        id: `system-${Date.now()}`,
+        role: 'assistant',
+        content: "Please wait a moment before sending another message. The API is rate limited.",
+        suggestions: []
+      };
+      setMessages(prev => [...prev, rateLimitMessage]);
+      return;
+    }
+
+    setLastRequestTime(now);
 
     // Add user message
     const userMessage: ChatMessage = {
