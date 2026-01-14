@@ -12,7 +12,7 @@ import {
 import './index.css';
 
 // ============ TYPES ============
-type AppScreen = 'landing' | 'personal-interest' | 'narrative' | 'trips' | 'trip-detail' | 'squad' | 'itinerary' | 'memory-maker' | 'film-studio' | 'demo' | 'about' | 'create-trip' | 'manage-trips';
+type AppScreen = 'landing' | 'chat-onboarding' | 'personal-interest' | 'narrative' | 'trips' | 'trip-detail' | 'squad' | 'itinerary' | 'memory-maker' | 'film-studio' | 'demo' | 'about' | 'create-trip' | 'manage-trips';
 
 // User Profile for personalized matching
 interface UserProfile {
@@ -1264,6 +1264,16 @@ function App() {
             onCreateTrip={() => setScreen('create-trip')}
             onSignIn={() => setScreen('personal-interest')}
             onManageTrips={() => setScreen('manage-trips')}
+            onChatStart={() => setScreen('chat-onboarding')}
+          />
+        )}
+
+        {screen === 'chat-onboarding' && (
+          <ChatOnboardingScreen
+            key="chat-onboarding"
+            trips={trips}
+            onSelectTrip={(t) => { setSelectedTrip(t); setScreen('trip-detail'); }}
+            onBack={() => setScreen('landing')}
           />
         )}
 
@@ -1385,7 +1395,7 @@ function App() {
 }
 
 // ============ LANDING SCREEN ============
-function LandingScreen({ onStart, onDemo, onAbout, onCreateTrip, onSignIn, onManageTrips }: { onStart: () => void; onDemo: () => void; onAbout: () => void; onCreateTrip: () => void; onSignIn: () => void; onManageTrips: () => void }) {
+function LandingScreen({ onStart, onDemo, onAbout, onCreateTrip, onSignIn, onManageTrips, onChatStart }: { onStart: () => void; onDemo: () => void; onAbout: () => void; onCreateTrip: () => void; onSignIn: () => void; onManageTrips: () => void; onChatStart: () => void }) {
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -1465,29 +1475,42 @@ function LandingScreen({ onStart, onDemo, onAbout, onCreateTrip, onSignIn, onMan
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.8 }}
-              className="flex flex-col sm:flex-row gap-4 justify-center flex-wrap"
+              className="flex flex-col gap-6 items-center"
             >
+              {/* Main CTA - Chat Button */}
               <button
-                onClick={onStart}
-                className="btn bg-gradient-to-r from-teal-500 to-teal-600 text-white text-lg px-10 py-4 shadow-xl shadow-teal-500/30 hover:shadow-2xl hover:shadow-teal-500/40 transition-all"
+                onClick={onChatStart}
+                className="btn bg-gradient-to-r from-purple-500 via-pink-500 to-terra-500 text-white text-xl px-12 py-5 shadow-2xl shadow-purple-500/40 hover:shadow-3xl hover:scale-105 transition-all flex items-center justify-center gap-3 rounded-2xl"
               >
-                <Play className="w-5 h-5 mr-2 inline" />
-                Browse Trips
+                <MessageCircle className="w-6 h-6" />
+                Tell me what Story Trip you want?
+                <Sparkles className="w-5 h-5" />
               </button>
-              <button
-                onClick={onCreateTrip}
-                className="btn bg-gradient-to-r from-terra-500 to-terra-600 text-white text-lg px-8 py-4 shadow-xl shadow-terra-500/30 hover:shadow-2xl hover:shadow-terra-500/40 transition-all flex items-center justify-center gap-2"
-              >
-                <Plus className="w-5 h-5" />
-                Create My Own Trip
-              </button>
-              <button
-                onClick={onDemo}
-                className="btn bg-white/10 backdrop-blur-sm text-white border border-white/30 text-lg px-8 py-4 hover:bg-white/20 flex items-center justify-center gap-2"
-              >
-                <Film className="w-5 h-5" />
-                Watch Demo
-              </button>
+
+              {/* Secondary Options */}
+              <div className="flex flex-col sm:flex-row gap-3 justify-center flex-wrap">
+                <button
+                  onClick={onStart}
+                  className="btn bg-white/10 backdrop-blur-sm text-white border border-white/30 px-6 py-3 hover:bg-white/20 flex items-center justify-center gap-2"
+                >
+                  <Play className="w-4 h-4" />
+                  Browse All Trips
+                </button>
+                <button
+                  onClick={onCreateTrip}
+                  className="btn bg-white/10 backdrop-blur-sm text-white border border-white/30 px-6 py-3 hover:bg-white/20 flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Create My Own
+                </button>
+                <button
+                  onClick={onDemo}
+                  className="btn bg-white/10 backdrop-blur-sm text-white border border-white/30 px-6 py-3 hover:bg-white/20 flex items-center justify-center gap-2"
+                >
+                  <Film className="w-4 h-4" />
+                  Watch Demo
+                </button>
+              </div>
             </motion.div>
           </div>
         </main>
@@ -1524,6 +1547,355 @@ function LandingScreen({ onStart, onDemo, onAbout, onCreateTrip, onSignIn, onMan
           animation: slow-zoom 20s ease-out forwards;
         }
       `}</style>
+    </motion.div>
+  );
+}
+
+// ============ CHAT ONBOARDING SCREEN ============
+function ChatOnboardingScreen({ trips, onSelectTrip, onBack }: {
+  trips: Trip[];
+  onSelectTrip: (trip: Trip) => void;
+  onBack: () => void;
+}) {
+  // Chat state
+  const [messages, setMessages] = useState<Array<{
+    id: string;
+    type: 'bot' | 'user' | 'options' | 'trips';
+    content: string;
+    options?: Array<{ id: string; label: string; emoji?: string }>;
+    trips?: Trip[];
+  }>>([]);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [isTyping, setIsTyping] = useState(false);
+  const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
+
+  // Chat flow questions
+  const chatFlow = [
+    {
+      id: 'welcome',
+      message: "Hey there! I'm your StoryTrip guide. I'll help you find the perfect adventure based on what you're looking for. Ready to discover your next story?",
+      options: [
+        { id: 'ready', label: "Let's do it!", emoji: '🚀' },
+        { id: 'curious', label: "Tell me more first", emoji: '🤔' },
+      ]
+    },
+    {
+      id: 'trip_type',
+      message: "Awesome! First, what kind of experience are you dreaming about?",
+      options: [
+        { id: 'adventure', label: 'Adventure & Thrills', emoji: '🏔️' },
+        { id: 'sports', label: 'Sports & Events', emoji: '🏆' },
+        { id: 'wellness', label: 'Relaxation & Wellness', emoji: '🧘' },
+        { id: 'cultural', label: 'Culture & Discovery', emoji: '🏛️' },
+      ]
+    },
+    {
+      id: 'travel_style',
+      message: "Love it! And how do you like to travel?",
+      options: [
+        { id: 'solo', label: 'Solo explorer', emoji: '🎒' },
+        { id: 'partner', label: 'With a partner', emoji: '💑' },
+        { id: 'friends', label: 'Group of friends', emoji: '👯' },
+        { id: 'flexible', label: 'Open to meeting people', emoji: '🤝' },
+      ]
+    },
+    {
+      id: 'budget',
+      message: "Great choice! What's your budget comfort zone?",
+      options: [
+        { id: 'budget', label: 'Budget-friendly', emoji: '💰' },
+        { id: 'mid', label: 'Mid-range comfort', emoji: '💎' },
+        { id: 'luxury', label: 'Luxury experience', emoji: '👑' },
+        { id: 'flexible', label: 'Flexible', emoji: '🎯' },
+      ]
+    },
+    {
+      id: 'duration',
+      message: "How long are you thinking for this trip?",
+      options: [
+        { id: 'short', label: 'Quick getaway (3-5 days)', emoji: '⚡' },
+        { id: 'week', label: 'About a week', emoji: '📅' },
+        { id: 'extended', label: 'Extended adventure (10+ days)', emoji: '🌍' },
+        { id: 'flexible', label: 'I\'m flexible', emoji: '🎲' },
+      ]
+    },
+    {
+      id: 'vibe',
+      message: "Last one! What vibe are you going for?",
+      options: [
+        { id: 'active', label: 'Action-packed', emoji: '🔥' },
+        { id: 'balanced', label: 'Mix of adventure & chill', emoji: '⚖️' },
+        { id: 'relaxed', label: 'Mostly relaxed', emoji: '🌴' },
+        { id: 'spontaneous', label: 'Surprise me!', emoji: '🎁' },
+      ]
+    }
+  ];
+
+  // Initialize with welcome message
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      addBotMessage(chatFlow[0]);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const addBotMessage = (step: typeof chatFlow[0]) => {
+    setIsTyping(true);
+    setTimeout(() => {
+      setMessages(prev => [...prev, {
+        id: `bot-${Date.now()}`,
+        type: 'bot',
+        content: step.message,
+      }]);
+      setIsTyping(false);
+
+      // Add options after a short delay
+      setTimeout(() => {
+        setMessages(prev => [...prev, {
+          id: `options-${Date.now()}`,
+          type: 'options',
+          content: '',
+          options: step.options,
+        }]);
+      }, 300);
+    }, 1000 + Math.random() * 500);
+  };
+
+  const handleOptionSelect = (optionId: string, optionLabel: string) => {
+    // Add user's response as a message
+    setMessages(prev => prev.filter(m => m.type !== 'options').concat({
+      id: `user-${Date.now()}`,
+      type: 'user',
+      content: optionLabel,
+    }));
+
+    // Store answer
+    const currentQuestion = chatFlow[currentStep];
+    setUserAnswers(prev => ({ ...prev, [currentQuestion.id]: optionId }));
+
+    // Move to next step or show recommendations
+    const nextStep = currentStep + 1;
+    if (nextStep < chatFlow.length) {
+      setCurrentStep(nextStep);
+      setTimeout(() => addBotMessage(chatFlow[nextStep]), 500);
+    } else {
+      // Show recommendations
+      showRecommendations();
+    }
+  };
+
+  const showRecommendations = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      setMessages(prev => [...prev, {
+        id: `bot-rec-${Date.now()}`,
+        type: 'bot',
+        content: "Perfect! Based on what you told me, here are my top picks for you:",
+      }]);
+      setIsTyping(false);
+
+      // Calculate recommended trips
+      const recommended = getRecommendedTrips();
+
+      setTimeout(() => {
+        setMessages(prev => [...prev, {
+          id: `trips-${Date.now()}`,
+          type: 'trips',
+          content: '',
+          trips: recommended,
+        }]);
+      }, 500);
+    }, 1500);
+  };
+
+  const getRecommendedTrips = (): Trip[] => {
+    // Score trips based on user answers
+    const scoredTrips = trips.map(trip => {
+      let score = 0;
+
+      // Match trip type
+      const tripType = userAnswers.trip_type;
+      if (tripType === 'sports' && trip.sportCategory) score += 30;
+      if (tripType === 'adventure' && trip.tags.some(t => ['adventure', 'hiking', 'skiing'].includes(t.toLowerCase()))) score += 30;
+      if (tripType === 'wellness' && trip.tags.some(t => ['wellness', 'spa', 'yoga', 'relaxation'].includes(t.toLowerCase()))) score += 30;
+      if (tripType === 'cultural' && trip.tags.some(t => ['cultural', 'history', 'art', 'food'].includes(t.toLowerCase()))) score += 30;
+
+      // Match vibe
+      const vibe = userAnswers.vibe;
+      if (vibe === 'active' && trip.tags.some(t => ['adventure', 'sports', 'active'].includes(t.toLowerCase()))) score += 20;
+      if (vibe === 'relaxed' && trip.tags.some(t => ['relaxation', 'spa', 'beach'].includes(t.toLowerCase()))) score += 20;
+      if (vibe === 'balanced') score += 10; // Neutral bonus
+
+      // Rating bonus
+      score += trip.rating * 5;
+
+      // Random factor for variety
+      score += Math.random() * 10;
+
+      return { trip, score };
+    });
+
+    // Sort by score and return top 5
+    return scoredTrips
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5)
+      .map(s => s.trip);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-slate-900"
+    >
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-black/20 backdrop-blur-md p-4 flex items-center justify-between border-b border-white/10">
+        <button onClick={onBack} className="flex items-center gap-2 text-white/70 hover:text-white transition-colors">
+          <ChevronLeft className="w-5 h-5" />
+          Back
+        </button>
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+            <Sparkles className="w-4 h-4 text-white" />
+          </div>
+          <span className="text-lg font-display font-bold text-white">Trip Finder</span>
+        </div>
+        <div className="w-20" />
+      </header>
+
+      {/* Chat Container */}
+      <div className="max-w-2xl mx-auto px-4 py-6 pb-32">
+        <div className="space-y-4">
+          <AnimatePresence>
+            {messages.map((message) => (
+              <motion.div
+                key={message.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                {message.type === 'bot' && (
+                  <div className="flex gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
+                      <Compass className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="bg-white/10 backdrop-blur-sm rounded-2xl rounded-tl-none px-5 py-3 max-w-[80%]">
+                      <p className="text-white">{message.content}</p>
+                    </div>
+                  </div>
+                )}
+
+                {message.type === 'user' && (
+                  <div className="flex justify-end">
+                    <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl rounded-tr-none px-5 py-3 max-w-[80%]">
+                      <p className="text-white">{message.content}</p>
+                    </div>
+                  </div>
+                )}
+
+                {message.type === 'options' && message.options && (
+                  <div className="flex flex-wrap gap-2 ml-13 pl-13">
+                    {message.options.map((option) => (
+                      <motion.button
+                        key={option.id}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => handleOptionSelect(option.id, `${option.emoji || ''} ${option.label}`)}
+                        className="px-4 py-2.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-white transition-all flex items-center gap-2"
+                      >
+                        {option.emoji && <span className="text-lg">{option.emoji}</span>}
+                        <span>{option.label}</span>
+                      </motion.button>
+                    ))}
+                  </div>
+                )}
+
+                {message.type === 'trips' && message.trips && (
+                  <div className="space-y-4 mt-4">
+                    {message.trips.map((trip, index) => (
+                      <motion.div
+                        key={trip.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        onClick={() => onSelectTrip(trip)}
+                        className="bg-white/10 backdrop-blur-sm rounded-2xl overflow-hidden cursor-pointer hover:bg-white/15 transition-all group"
+                      >
+                        <div className="flex">
+                          <div className="w-32 h-32 flex-shrink-0">
+                            <img src={trip.image} alt={trip.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                          </div>
+                          <div className="p-4 flex-1">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <span className="text-xs text-purple-300 font-medium">#{index + 1} Match</span>
+                                <h3 className="text-white font-semibold mt-1">{trip.title}</h3>
+                                <p className="text-white/60 text-sm flex items-center gap-1 mt-1">
+                                  <MapPin className="w-3 h-3" /> {trip.location.split(',')[0]}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-1 bg-yellow-500/20 px-2 py-1 rounded-lg">
+                                <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                                <span className="text-yellow-400 text-sm font-medium">{trip.rating}</span>
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5 mt-2">
+                              {trip.tags.slice(0, 3).map(tag => (
+                                <span key={tag} className="px-2 py-0.5 bg-white/10 rounded-full text-xs text-white/70">{tag}</span>
+                              ))}
+                            </div>
+                            <div className="flex items-center justify-between mt-2">
+                              <span className="text-white/50 text-sm">{trip.duration}</span>
+                              <span className="text-teal-400 font-semibold">{trip.price}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+
+                    {/* CTA Button */}
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.5 }}
+                      className="text-center pt-4"
+                    >
+                      <p className="text-white/60 text-sm mb-3">Click any trip to see details and book!</p>
+                      <button
+                        onClick={onBack}
+                        className="text-white/50 hover:text-white text-sm underline"
+                      >
+                        Or start over with different preferences
+                      </button>
+                    </motion.div>
+                  </div>
+                )}
+              </motion.div>
+            ))}
+          </AnimatePresence>
+
+          {/* Typing Indicator */}
+          {isTyping && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex gap-3"
+            >
+              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
+                <Compass className="w-5 h-5 text-white" />
+              </div>
+              <div className="bg-white/10 backdrop-blur-sm rounded-2xl rounded-tl-none px-5 py-3">
+                <div className="flex gap-1">
+                  <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </div>
+      </div>
     </motion.div>
   );
 }
