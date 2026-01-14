@@ -2065,6 +2065,29 @@ In the meantime, you can browse our 100+ curated trips by going back and explori
     handleSend(suggestion);
   };
 
+  // Handle "I'm done, recommend trips" action
+  const handleRequestRecommendations = () => {
+    handleSend("I'm ready! Based on our conversation, please recommend the best trips for me from your database and also suggest what I should search for on TripAdvisor, Booking.com, and Ctrip.");
+  };
+
+  // Handle "Start from beginning" action
+  const handleStartOver = () => {
+    setMessages([]);
+    setConversationHistory([]);
+    setHasRecommended(false);
+    setIsRateLimited(false);
+    // Re-initialize with welcome message after a brief delay
+    setTimeout(() => {
+      const welcomeMessage: ChatMessage = {
+        id: `assistant-${Date.now()}`,
+        role: 'assistant',
+        content: "Welcome back! Let's start fresh. What kind of adventure are you dreaming about? Tell me anything - a destination you've always wanted to visit, an experience you're craving, or just how you're feeling about travel right now.",
+        suggestions: ["I want an adventure", "Planning a romantic getaway", "Looking for a family trip", "Need a solo escape"]
+      };
+      setMessages([welcomeMessage]);
+    }, 100);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -2294,6 +2317,37 @@ In the meantime, you can browse our 100+ curated trips by going back and explori
       {!hasRecommended && (
         <div className="fixed bottom-0 left-0 right-0 bg-cream-100/95 backdrop-blur-md border-t border-cream-300 p-4">
           <div className="max-w-2xl mx-auto">
+            {/* Action Buttons */}
+            {messages.length > 2 && !isTyping && (
+              <div className="flex gap-3 mb-3 justify-center">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleRequestRecommendations}
+                  disabled={isRateLimited}
+                  className="px-4 py-2.5 bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-xl shadow-md shadow-teal-500/20 text-sm font-medium flex items-center gap-2 disabled:opacity-50"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  I'm done - Recommend trips for me
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleStartOver}
+                  className="px-4 py-2.5 bg-white border-2 border-cream-300 text-warm-600 rounded-xl text-sm font-medium hover:bg-cream-50 transition-colors"
+                >
+                  Start from beginning
+                </motion.button>
+              </div>
+            )}
+
+            {/* Rate limit warning */}
+            {isRateLimited && (
+              <div className="mb-3 px-4 py-2 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-sm text-center">
+                Please wait ~30 seconds before sending another message (API rate limit)
+              </div>
+            )}
+
             <div className="flex gap-3">
               <input
                 type="text"
@@ -2302,21 +2356,38 @@ In the meantime, you can browse our 100+ curated trips by going back and explori
                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                 placeholder="Tell me about your dream trip..."
                 className="flex-1 px-4 py-3 bg-white border-2 border-cream-300 rounded-xl text-warm-800 placeholder-warm-400 focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-100 transition-all"
-                disabled={isTyping}
+                disabled={isTyping || isRateLimited}
               />
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => handleSend()}
-                disabled={isTyping || !inputValue.trim()}
+                disabled={isTyping || !inputValue.trim() || isRateLimited}
                 className="px-5 py-3 bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-xl shadow-lg shadow-teal-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 <Send className="w-5 h-5" />
               </motion.button>
             </div>
             <p className="text-center text-warm-400 text-xs mt-2">
-              Chat naturally - I'll recommend trips when I understand what you're looking for. Hover over your messages to edit them.
+              Chat naturally, then click "Recommend trips" when ready. Hover over your messages to edit them.
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* After recommendations - show option to start over */}
+      {hasRecommended && (
+        <div className="fixed bottom-0 left-0 right-0 bg-cream-100/95 backdrop-blur-md border-t border-cream-300 p-4">
+          <div className="max-w-2xl mx-auto text-center">
+            <p className="text-warm-600 text-sm mb-3">Want to explore different options?</p>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleStartOver}
+              className="px-6 py-3 bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-xl shadow-md shadow-teal-500/20 font-medium"
+            >
+              Start a new search
+            </motion.button>
           </div>
         </div>
       )}

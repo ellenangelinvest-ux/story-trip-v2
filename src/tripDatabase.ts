@@ -2191,6 +2191,22 @@ export const externalPlatforms = {
     logo: 'https://www.contiki.com/favicon.ico',
     searchUrl: (destination: string) =>
       `https://www.contiki.com/search?searchTerm=${encodeURIComponent(destination)}`,
+  },
+  booking: {
+    name: 'Booking.com',
+    logo: 'https://www.booking.com/favicon.ico',
+    searchUrl: (destination: string) =>
+      `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(destination)}`,
+    experiencesUrl: (destination: string) =>
+      `https://www.booking.com/attractions/searchresults.html?query=${encodeURIComponent(destination)}`,
+  },
+  ctrip: {
+    name: 'Ctrip/Trip.com',
+    logo: 'https://www.trip.com/favicon.ico',
+    searchUrl: (destination: string) =>
+      `https://www.trip.com/travel-guide/${encodeURIComponent(destination.toLowerCase().replace(/\s+/g, '-'))}/`,
+    toursUrl: (destination: string) =>
+      `https://www.trip.com/things-to-do/search/list?keyword=${encodeURIComponent(destination)}`,
   }
 };
 
@@ -2211,9 +2227,14 @@ export const generateExternalSearchLinks = (preferences: {
       description: 'Read reviews and find tours'
     },
     {
-      platform: 'TourRadar',
-      url: destination ? externalPlatforms.tourradar.adventureUrl(destination) : externalPlatforms.tourradar.searchUrl(searchTerm),
-      description: 'Browse multi-day tours'
+      platform: 'Booking.com',
+      url: destination ? externalPlatforms.booking.experiencesUrl(destination) : externalPlatforms.booking.searchUrl(searchTerm),
+      description: 'Hotels and travel experiences'
+    },
+    {
+      platform: 'Ctrip/Trip.com',
+      url: externalPlatforms.ctrip.toursUrl(searchTerm),
+      description: 'Asia tours and activities'
     },
     {
       platform: 'Viator',
@@ -2221,24 +2242,14 @@ export const generateExternalSearchLinks = (preferences: {
       description: 'Book experiences and day trips'
     },
     {
-      platform: 'GetYourGuide',
-      url: externalPlatforms.getyourguide.searchUrl(searchTerm),
-      description: 'Find activities and attractions'
-    },
-    {
       platform: 'Expedia',
       url: destination ? externalPlatforms.expedia.packagesUrl(destination) : externalPlatforms.expedia.searchUrl(searchTerm),
       description: 'Compare vacation packages'
     },
     {
-      platform: 'Intrepid Travel',
-      url: externalPlatforms.intrepid.searchUrl(searchTerm),
-      description: 'Small group adventures'
-    },
-    {
-      platform: 'G Adventures',
-      url: externalPlatforms.gadventures.searchUrl(searchTerm),
-      description: 'Sustainable group tours'
+      platform: 'TourRadar',
+      url: destination ? externalPlatforms.tourradar.adventureUrl(destination) : externalPlatforms.tourradar.searchUrl(searchTerm),
+      description: 'Browse multi-day tours'
     }
   ];
 };
