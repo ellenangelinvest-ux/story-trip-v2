@@ -2210,46 +2210,52 @@ export const externalPlatforms = {
   }
 };
 
-// Generate external search links based on user preferences
+// Generate external search links based on AI-provided search terms or preferences
 export const generateExternalSearchLinks = (preferences: {
   destination?: string;
   category?: string;
   duration?: string;
   budget?: string;
+  // Custom search terms from Gemini AI
+  searchTerms?: {
+    tripadvisor?: string;
+    booking?: string;
+    ctrip?: string;
+  };
 }) => {
-  const { destination, category } = preferences;
-  const searchTerm = destination || category || 'adventure travel';
+  const { destination, category, searchTerms } = preferences;
+  const defaultSearchTerm = destination || category || 'adventure travel';
 
   return [
     {
       platform: 'TripAdvisor',
-      url: externalPlatforms.tripadvisor.searchUrl(searchTerm, destination),
-      description: 'Read reviews and find tours'
+      url: externalPlatforms.tripadvisor.searchUrl(searchTerms?.tripadvisor || defaultSearchTerm, destination),
+      description: searchTerms?.tripadvisor || 'Read reviews and find tours',
+      searchTerm: searchTerms?.tripadvisor || defaultSearchTerm
     },
     {
       platform: 'Booking.com',
-      url: destination ? externalPlatforms.booking.experiencesUrl(destination) : externalPlatforms.booking.searchUrl(searchTerm),
-      description: 'Hotels and travel experiences'
+      url: externalPlatforms.booking.searchUrl(searchTerms?.booking || defaultSearchTerm),
+      description: searchTerms?.booking || 'Hotels and travel experiences',
+      searchTerm: searchTerms?.booking || defaultSearchTerm
     },
     {
       platform: 'Ctrip/Trip.com',
-      url: externalPlatforms.ctrip.toursUrl(searchTerm),
-      description: 'Asia tours and activities'
+      url: externalPlatforms.ctrip.toursUrl(searchTerms?.ctrip || defaultSearchTerm),
+      description: searchTerms?.ctrip || 'Asia tours and activities',
+      searchTerm: searchTerms?.ctrip || defaultSearchTerm
     },
     {
       platform: 'Viator',
-      url: externalPlatforms.viator.searchUrl(searchTerm),
-      description: 'Book experiences and day trips'
+      url: externalPlatforms.viator.searchUrl(defaultSearchTerm),
+      description: 'Book experiences and day trips',
+      searchTerm: defaultSearchTerm
     },
     {
       platform: 'Expedia',
-      url: destination ? externalPlatforms.expedia.packagesUrl(destination) : externalPlatforms.expedia.searchUrl(searchTerm),
-      description: 'Compare vacation packages'
-    },
-    {
-      platform: 'TourRadar',
-      url: destination ? externalPlatforms.tourradar.adventureUrl(destination) : externalPlatforms.tourradar.searchUrl(searchTerm),
-      description: 'Browse multi-day tours'
+      url: destination ? externalPlatforms.expedia.packagesUrl(destination) : externalPlatforms.expedia.searchUrl(defaultSearchTerm),
+      description: 'Compare vacation packages',
+      searchTerm: defaultSearchTerm
     }
   ];
 };

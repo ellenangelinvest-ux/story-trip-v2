@@ -1652,7 +1652,7 @@ interface ChatMessage {
   content: string;
   suggestions?: string[];
   recommendedTrips?: TripListing[];
-  externalLinks?: Array<{ platform: string; url: string; description: string }>;
+  externalLinks?: Array<{ platform: string; url: string; description: string; searchTerm?: string }>;
   isEditing?: boolean;
 }
 
@@ -1703,25 +1703,45 @@ TOPICS TO EXPLORE (naturally, not as a checklist):
 - Time of year / when they want to travel
 - Past travel experiences they loved
 
-WHEN USER ASKS FOR RECOMMENDATIONS (or clicks Find My Trips):
-Include "[RECOMMEND_TRIPS]" at the start of your message, followed by a JSON object with trip IDs from our database AND search suggestions for external sites:
+WHEN USER ASKS FOR RECOMMENDATIONS (or clicks "Recommend trips"):
+Start with "[RECOMMEND_TRIPS]" followed by JSON:
 [RECOMMEND_TRIPS]
-{"tripIds": ["5", "23", "67"], "searchTerms": ["Japan ski resort packages", "Hokkaido winter tours"], "reasoning": "Brief explanation of why these match"}
+{"tripIds": ["6", "26"], "searchTerms": {"tripadvisor": "budget beach vacation Costa Rica", "booking": "beach hotels Costa Rica budget", "ctrip": "beach holiday packages Asia"}, "destination": "Costa Rica"}
 
-Then write a warm message explaining your recommendations and mention they can also search on travel sites for more options.
+Then write your response in this STRUCTURED FORMAT:
+
+---
+
+🎯 **Based on what you've shared, here are my top picks:**
+
+**From Our Curated Collection:**
+(The trip cards will be shown automatically - just mention why each is a great match)
+
+1. **[Trip Name]** - Brief explanation of why this matches their needs
+2. **[Trip Name]** - Brief explanation of why this matches their needs
+
+**Search on Travel Sites:**
+(External links will be shown automatically with the search terms you provided)
+
+I've set up searches for "[main search term]" on the major travel platforms above!
+
+---
+
+💡 **Pro tip:** [Add a relevant travel tip or insider advice]
+
+Happy travels! ✈️
 
 AVAILABLE TRIPS IN OUR DATABASE (${tripsSummary.length} total):
 ${JSON.stringify(tripsSummary.slice(0, 40), null, 1)}
 ... and more trips covering adventure, sports, wellness, cultural, beach, nature, luxury, budget, family, and romantic categories across 50+ destinations worldwide.
 
 IMPORTANT:
-- Recommend trips from our database by ID when they match well
-- Also suggest what to search for on TripAdvisor, Expedia, Viator for more options
-- DO NOT recommend trips until the user explicitly asks or clicks the Find My Trips button
-- Keep the conversation going - ask follow-up questions, share travel tips, explore their interests
-- Use your knowledge to share interesting destination facts and insider tips
-- Always provide 2-4 quick reply suggestions in brackets at the end like: [Quick replies: "Option 1", "Option 2", "Option 3"]
-- If user wants to change a preference, acknowledge it warmly and ask what they'd like to change`;
+- Recommend 2-4 trips from our database by ID when they match well
+- Provide specific, relevant searchTerms for each platform (tripadvisor, booking, ctrip)
+- DO NOT recommend trips until the user explicitly asks or clicks the button
+- Keep conversations engaging - ask follow-up questions, share travel tips
+- Always provide 2-4 quick reply suggestions: [Quick replies: "Option 1", "Option 2"]
+- Structure your recommendation response clearly with sections as shown above`;
 
   // Initialize conversation with Gemini
   useEffect(() => {
@@ -1755,7 +1775,8 @@ IMPORTANT:
     content: string;
     suggestions: string[];
     tripIds?: string[];
-    reasoning?: string;
+    searchTerms?: { tripadvisor?: string; booking?: string; ctrip?: string };
+    destination?: string;
   }> => {
     // Build conversation history for Gemini format
     const geminiHistory = conversationHistory.map(msg => ({
@@ -1849,17 +1870,19 @@ IMPORTANT:
     }
   };
 
-  // Parse Gemini response (same logic as before)
+  // Parse Gemini response
   const parseGeminiResponse = (text: string): {
     content: string;
     suggestions: string[];
     tripIds?: string[];
-    reasoning?: string;
+    searchTerms?: { tripadvisor?: string; booking?: string; ctrip?: string };
+    destination?: string;
   } => {
     let content = text;
     let suggestions: string[] = [];
     let tripIds: string[] | undefined;
-    let reasoning: string | undefined;
+    let searchTerms: { tripadvisor?: string; booking?: string; ctrip?: string } | undefined;
+    let destination: string | undefined;
 
     // Check for trip recommendations
     if (text.includes('[RECOMMEND_TRIPS]')) {
@@ -1867,17 +1890,27 @@ IMPORTANT:
       content = parts[0].trim();
 
       try {
-        // Extract JSON from the recommendation part
-        const jsonMatch = parts[1].match(/\{[\s\S]*?\}/);
-        if (jsonMatch) {
-          const recData = JSON.parse(jsonMatch[0]);
-          tripIds = recData.tripIds;
-          reasoning = recData.reasoning;
-          // Get the message after the JSON
-          const afterJson = parts[1].substring(parts[1].indexOf('}') + 1).trim();
-          if (afterJson) {
-            content = afterJson;
+        // Extract JSON from the recommendation part - handle nested objects
+        const jsonStart = parts[1].indexOf('{');
+        let braceCount = 0;
+        let jsonEnd = jsonStart;
+        for (let i = jsonStart; i < parts[1].length; i++) {
+          if (parts[1][i] === '{') braceCount++;
+          if (parts[1][i] === '}') braceCount--;
+          if (braceCount === 0) {
+            jsonEnd = i + 1;
+            break;
           }
+        }
+        const jsonStr = parts[1].substring(jsonStart, jsonEnd);
+        const recData = JSON.parse(jsonStr);
+        tripIds = recData.tripIds;
+        searchTerms = recData.searchTerms;
+        destination = recData.destination;
+        // Get the message after the JSON
+        const afterJson = parts[1].substring(jsonEnd).trim();
+        if (afterJson) {
+          content = afterJson;
         }
       } catch (e) {
         console.error('Error parsing recommendations:', e);
@@ -1891,7 +1924,7 @@ IMPORTANT:
       content = content.replace(/\[Quick replies?:.*?\]/i, '').trim();
     }
 
-    return { content, suggestions, tripIds, reasoning };
+    return { content, suggestions, tripIds, searchTerms, destination };
   };
 
   // Simple fallback when no API key - just show error
@@ -1959,7 +1992,11 @@ In the meantime, you can browse our 100+ curated trips by going back and explori
         .map(id => tripDatabase.find(t => t.id === id))
         .filter(Boolean) as TripListing[];
 
-      const externalLinks = generateExternalSearchLinks({});
+      // Generate external links with AI-provided search terms
+      const externalLinks = generateExternalSearchLinks({
+        destination: response.destination,
+        searchTerms: response.searchTerms
+      });
 
       const assistantMessage: ChatMessage = {
         id: `assistant-${Date.now()}`,
@@ -2035,8 +2072,11 @@ In the meantime, you can browse our 100+ curated trips by going back and explori
         .map(id => tripDatabase.find(t => t.id === id))
         .filter(Boolean) as TripListing[];
 
-      // Generate external links
-      const externalLinks = generateExternalSearchLinks({});
+      // Generate external links with AI-provided search terms
+      const externalLinks = generateExternalSearchLinks({
+        destination: response.destination,
+        searchTerms: response.searchTerms
+      });
 
       const assistantMessage: ChatMessage = {
         id: `assistant-${Date.now()}`,
@@ -2215,18 +2255,27 @@ In the meantime, you can browse our 100+ curated trips by going back and explori
                             transition={{ delay: 0.6 }}
                             className="mt-4 pt-4 border-t border-cream-200"
                           >
-                            <p className="text-warm-600 text-sm font-medium mb-3">Explore more options on:</p>
-                            <div className="flex flex-wrap gap-2">
-                              {message.externalLinks.map((link, idx) => (
+                            <p className="text-warm-600 font-medium mb-3 flex items-center gap-2">
+                              <Globe className="w-4 h-4" />
+                              Search on Travel Sites:
+                            </p>
+                            <div className="space-y-2">
+                              {message.externalLinks.slice(0, 3).map((link, idx) => (
                                 <a
                                   key={idx}
                                   href={link.url}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="px-3 py-2 bg-cream-100 hover:bg-cream-200 border border-cream-300 rounded-lg text-warm-700 text-sm transition-all flex items-center gap-2"
+                                  className="block px-4 py-3 bg-white hover:bg-cream-50 border border-cream-300 rounded-xl text-warm-700 transition-all hover:shadow-md group"
                                 >
-                                  <Globe className="w-4 h-4" />
-                                  {link.platform}
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                      <span className="font-semibold text-teal-600">{link.platform}</span>
+                                      <span className="text-warm-400">→</span>
+                                      <span className="text-warm-600 text-sm italic">"{link.searchTerm || link.description}"</span>
+                                    </div>
+                                    <ArrowRight className="w-4 h-4 text-warm-400 group-hover:text-teal-500 transition-colors" />
+                                  </div>
                                 </a>
                               ))}
                             </div>
