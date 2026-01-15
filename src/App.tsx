@@ -1346,13 +1346,15 @@ function App() {
         {screen === 'landing' && (
           <LandingScreen
             key="landing"
-            onStart={() => setScreen('personal-interest')}
+            onStart={() => setScreen('trips')}
             onDemo={() => setScreen('demo')}
             onAbout={() => setScreen('about')}
             onCreateTrip={() => setScreen('create-trip')}
             onSignIn={() => setScreen('personal-interest')}
             onManageTrips={() => setScreen('manage-trips')}
             onChatStart={() => setScreen('chat-onboarding')}
+            onSquad={() => setScreen('squad')}
+            onFilm={() => setScreen('film-studio')}
           />
         )}
 
@@ -1486,7 +1488,7 @@ function App() {
 }
 
 // ============ LANDING SCREEN ============
-function LandingScreen({ onStart, onDemo, onAbout, onCreateTrip, onSignIn, onManageTrips, onChatStart }: { onStart: () => void; onDemo: () => void; onAbout: () => void; onCreateTrip: () => void; onSignIn: () => void; onManageTrips: () => void; onChatStart: () => void }) {
+function LandingScreen({ onStart, onDemo, onAbout, onCreateTrip, onSignIn, onManageTrips, onChatStart, onSquad, onFilm }: { onStart: () => void; onDemo: () => void; onAbout: () => void; onCreateTrip: () => void; onSignIn: () => void; onManageTrips: () => void; onChatStart: () => void; onSquad: () => void; onFilm: () => void }) {
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -1623,55 +1625,37 @@ function LandingScreen({ onStart, onDemo, onAbout, onCreateTrip, onSignIn, onMan
                 <ChevronRight className="w-5 h-5" />
               </button>
 
-              {/* Secondary Options */}
-              <div className="flex flex-col sm:flex-row gap-3 justify-center flex-wrap">
+              {/* Feature Cards */}
+              <div className="flex flex-col sm:flex-row gap-4 justify-center flex-wrap">
                 <button
                   onClick={onStart}
-                  className="btn bg-white/10 backdrop-blur-sm text-white border border-white/30 px-6 py-3 hover:bg-white/20 flex items-center justify-center gap-2"
+                  className="group btn bg-white/10 backdrop-blur-sm text-white border border-white/30 px-6 py-4 hover:bg-white/20 flex flex-col items-center gap-1 min-w-[160px] rounded-xl transition-all hover:scale-105"
                 >
-                  <Play className="w-4 h-4" />
-                  Browse All Trips
+                  <span className="text-2xl mb-1">🎬</span>
+                  <span className="font-semibold">Narrative Trips</span>
+                  <span className="text-xs text-white/60">Story-driven adventures</span>
                 </button>
                 <button
-                  onClick={onCreateTrip}
-                  className="btn bg-white/10 backdrop-blur-sm text-white border border-white/30 px-6 py-3 hover:bg-white/20 flex items-center justify-center gap-2"
+                  onClick={onSquad}
+                  className="group btn bg-white/10 backdrop-blur-sm text-white border border-white/30 px-6 py-4 hover:bg-white/20 flex flex-col items-center gap-1 min-w-[160px] rounded-xl transition-all hover:scale-105"
                 >
-                  <Plus className="w-4 h-4" />
-                  Create My Own
+                  <span className="text-2xl mb-1">👥</span>
+                  <span className="font-semibold">Squad Matching</span>
+                  <span className="text-xs text-white/60">Travel with your tribe</span>
                 </button>
                 <button
-                  onClick={onDemo}
-                  className="btn bg-white/10 backdrop-blur-sm text-white border border-white/30 px-6 py-3 hover:bg-white/20 flex items-center justify-center gap-2"
+                  onClick={onFilm}
+                  className="group btn bg-white/10 backdrop-blur-sm text-white border border-white/30 px-6 py-4 hover:bg-white/20 flex flex-col items-center gap-1 min-w-[160px] rounded-xl transition-all hover:scale-105"
                 >
-                  <Film className="w-4 h-4" />
-                  Watch Demo
+                  <span className="text-2xl mb-1">🎥</span>
+                  <span className="font-semibold">Your Film</span>
+                  <span className="text-xs text-white/60">Pro documentary included</span>
                 </button>
               </div>
             </motion.div>
           </div>
         </main>
 
-        {/* Features */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1 }}
-          className="p-6 pb-12"
-        >
-          <div className="max-w-4xl mx-auto grid grid-cols-3 gap-8 text-center">
-            {[
-              { icon: '🎬', label: 'Narrative Trips', desc: 'Story-driven adventures' },
-              { icon: '👥', label: 'Squad Matching', desc: 'Travel with your tribe' },
-              { icon: '🎥', label: 'Your Film', desc: 'Pro documentary included' },
-            ].map((feature) => (
-              <div key={feature.label} className="text-white/80">
-                <span className="text-4xl mb-2 block">{feature.icon}</span>
-                <p className="font-medium text-white">{feature.label}</p>
-                <p className="text-sm opacity-70">{feature.desc}</p>
-              </div>
-            ))}
-          </div>
-        </motion.div>
       </div>
 
       <style>{`
