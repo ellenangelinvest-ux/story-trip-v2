@@ -1,6 +1,1003 @@
 // Comprehensive Trip Database - 100+ curated travel experiences
 // These trips span various categories, price points, and destinations worldwide
 
+// Member engagement data for social features
+export interface TripMemberData {
+  signedUp: Array<{ name: string; avatar: string; date: string }>;
+  booked: Array<{ name: string; avatar: string; date: string; spotsReserved: number }>;
+  saved: Array<{ name: string; avatar: string; savedAt: string }>;
+  totalSignups: number;
+  totalBooked: number;
+  totalSaved: number;
+  spotsLeft: number;
+  maxSpots: number;
+}
+
+// Ranking and popularity data
+export interface TripRankingData {
+  currentRank: number;
+  previousRank: number;
+  rankChange: 'up' | 'down' | 'same' | 'new';
+  weeklyViews: number;
+  monthlyBookings: number;
+  trendingScore: number; // 0-100
+  popularityHistory: Array<{ week: string; rank: number; bookings: number }>;
+}
+
+// Comprehensive Member Profile for Squad matching and filtering
+export type InterestCategory = 'sports' | 'entertainment' | 'lifestyle';
+export type SportInterest = 'skiing' | 'surfing' | 'nba' | 'nfl' | 'mlb' | 'nhl' | 'fifa' | 'golf' | 'tennis' | 'f1' | 'mma';
+export type EntertainmentInterest = 'music-festivals' | 'concerts' | 'film' | 'theater' | 'gaming' | 'anime' | 'food-tours';
+export type LifestyleInterest = 'wellness' | 'yoga' | 'photography' | 'art' | 'wine-tasting' | 'nightlife' | 'eco-travel';
+export type RelationshipStatus = 'single' | 'couple' | 'married' | 'family' | 'looking';
+export type MBTIType = 'INTJ' | 'INTP' | 'ENTJ' | 'ENTP' | 'INFJ' | 'INFP' | 'ENFJ' | 'ENFP' | 'ISTJ' | 'ISFJ' | 'ESTJ' | 'ESFJ' | 'ISTP' | 'ISFP' | 'ESTP' | 'ESFP';
+export type GroupSizePreference = 'solo' | 'duo' | 'small' | 'medium' | 'large' | 'any';
+export type BudgetRange = 'budget' | 'moderate' | 'premium' | 'luxury' | 'flexible';
+export type TravelMonth = 'jan' | 'feb' | 'mar' | 'apr' | 'may' | 'jun' | 'jul' | 'aug' | 'sep' | 'oct' | 'nov' | 'dec' | 'flexible';
+
+export interface MemberTripHistory {
+  tripId: string;
+  tripTitle: string;
+  status: 'signed-up' | 'booked' | 'saved' | 'created' | 'completed';
+  date: string;
+  location: string;
+  companions?: number;
+}
+
+export interface MemberProfile {
+  id: string;
+  name: string;
+  avatar: string;
+  age: number;
+  location: string;
+  nationality: string;
+  bio: string;
+  joinedDate: string;
+  // Filter fields
+  interests: {
+    sports: SportInterest[];
+    entertainment: EntertainmentInterest[];
+    lifestyle: LifestyleInterest[];
+  };
+  relationshipStatus: RelationshipStatus;
+  mbtiType: MBTIType;
+  preferredGroupSize: GroupSizePreference;
+  preferredTravelMonths: TravelMonth[];
+  budgetRange: BudgetRange;
+  // Trip history
+  tripHistory: MemberTripHistory[];
+  // Stats
+  tripsCompleted: number;
+  tripsUpcoming: number;
+  squadMemberships: string[];
+}
+
+// 30 Comprehensive Member Profiles
+export const memberProfiles: MemberProfile[] = [
+  {
+    id: 'member-1',
+    name: 'Alex Chen',
+    avatar: '👨‍💼',
+    age: 32,
+    location: 'San Francisco, CA',
+    nationality: 'US',
+    bio: 'Tech entrepreneur with a passion for powder and NBA courtside experiences. Always chasing the next adventure.',
+    joinedDate: 'Mar 2023',
+    interests: {
+      sports: ['skiing', 'nba', 'golf'],
+      entertainment: ['concerts', 'gaming'],
+      lifestyle: ['photography', 'wine-tasting']
+    },
+    relationshipStatus: 'single',
+    mbtiType: 'ENTP',
+    preferredGroupSize: 'small',
+    preferredTravelMonths: ['jan', 'feb', 'mar', 'jul'],
+    budgetRange: 'premium',
+    tripHistory: [
+      { tripId: '1', tripTitle: 'Niseko Powder Paradise', status: 'completed', date: 'Jan 2024', location: 'Japan' },
+      { tripId: '15', tripTitle: 'NBA All-Star Weekend LA', status: 'booked', date: 'Feb 2025', location: 'Los Angeles', companions: 3 },
+      { tripId: '8', tripTitle: 'Augusta Masters Experience', status: 'saved', date: 'Apr 2025', location: 'Georgia' },
+      { tripId: 'custom-1', tripTitle: 'Japan Ski & Sake Tour', status: 'created', date: 'Jan 2026', location: 'Hokkaido' }
+    ],
+    tripsCompleted: 8,
+    tripsUpcoming: 2,
+    squadMemberships: ['s1', 's4']
+  },
+  {
+    id: 'member-2',
+    name: 'Sarah Johnson',
+    avatar: '👩‍🦰',
+    age: 28,
+    location: 'Sydney, Australia',
+    nationality: 'AU',
+    bio: 'Marketing exec turned travel addict. Surf by day, wine by night. Building my bucket list one trip at a time.',
+    joinedDate: 'Jun 2023',
+    interests: {
+      sports: ['surfing', 'tennis', 'skiing'],
+      entertainment: ['music-festivals', 'food-tours'],
+      lifestyle: ['wellness', 'yoga', 'nightlife']
+    },
+    relationshipStatus: 'single',
+    mbtiType: 'ENFP',
+    preferredGroupSize: 'medium',
+    preferredTravelMonths: ['jun', 'jul', 'aug', 'dec'],
+    budgetRange: 'moderate',
+    tripHistory: [
+      { tripId: '5', tripTitle: 'Bali Surf & Soul Retreat', status: 'completed', date: 'Aug 2024', location: 'Bali' },
+      { tripId: '2', tripTitle: 'Swiss Alps Hiking Adventure', status: 'booked', date: 'Jul 2025', location: 'Switzerland', companions: 2 },
+      { tripId: '12', tripTitle: 'Australian Open Experience', status: 'signed-up', date: 'Jan 2025', location: 'Melbourne' },
+      { tripId: '20', tripTitle: 'Coachella Music Festival', status: 'saved', date: 'Apr 2025', location: 'California' }
+    ],
+    tripsCompleted: 5,
+    tripsUpcoming: 3,
+    squadMemberships: ['s2', 's3']
+  },
+  {
+    id: 'member-3',
+    name: 'Marcus Smith',
+    avatar: '👨‍🦱',
+    age: 35,
+    location: 'Chicago, IL',
+    nationality: 'US',
+    bio: 'Former college basketball player, now the ultimate sports fan. If there\'s a game, I\'m there.',
+    joinedDate: 'Jan 2023',
+    interests: {
+      sports: ['nba', 'nfl', 'mlb'],
+      entertainment: ['concerts', 'gaming'],
+      lifestyle: ['nightlife', 'photography']
+    },
+    relationshipStatus: 'married',
+    mbtiType: 'ESFJ',
+    preferredGroupSize: 'large',
+    preferredTravelMonths: ['feb', 'oct', 'nov'],
+    budgetRange: 'premium',
+    tripHistory: [
+      { tripId: '15', tripTitle: 'NBA Finals Experience', status: 'completed', date: 'Jun 2024', location: 'Boston' },
+      { tripId: '16', tripTitle: 'Super Bowl LVIII Las Vegas', status: 'completed', date: 'Feb 2024', location: 'Las Vegas' },
+      { tripId: '17', tripTitle: 'World Series Chicago', status: 'booked', date: 'Oct 2025', location: 'Chicago', companions: 4 },
+      { tripId: '18', tripTitle: 'NBA Draft Night NYC', status: 'signed-up', date: 'Jun 2025', location: 'New York' }
+    ],
+    tripsCompleted: 12,
+    tripsUpcoming: 2,
+    squadMemberships: ['s4']
+  },
+  {
+    id: 'member-4',
+    name: 'Emma Wilson',
+    avatar: '👩',
+    age: 31,
+    location: 'London, UK',
+    nationality: 'UK',
+    bio: 'Finance professional with a weakness for good food and tennis. Wimbledon is my spiritual home.',
+    joinedDate: 'Apr 2023',
+    interests: {
+      sports: ['tennis', 'golf', 'skiing'],
+      entertainment: ['theater', 'food-tours', 'film'],
+      lifestyle: ['wine-tasting', 'art', 'wellness']
+    },
+    relationshipStatus: 'couple',
+    mbtiType: 'ESTJ',
+    preferredGroupSize: 'duo',
+    preferredTravelMonths: ['jun', 'jul', 'dec'],
+    budgetRange: 'luxury',
+    tripHistory: [
+      { tripId: '11', tripTitle: 'Wimbledon Championships VIP', status: 'completed', date: 'Jul 2024', location: 'London' },
+      { tripId: '8', tripTitle: 'Augusta Masters Experience', status: 'booked', date: 'Apr 2025', location: 'Georgia', companions: 1 },
+      { tripId: '1', tripTitle: 'Niseko Powder Paradise', status: 'saved', date: 'Jan 2026', location: 'Japan' },
+      { tripId: 'custom-2', tripTitle: 'French Open & Paris Food Tour', status: 'created', date: 'May 2025', location: 'Paris' }
+    ],
+    tripsCompleted: 6,
+    tripsUpcoming: 2,
+    squadMemberships: ['s2', 's5']
+  },
+  {
+    id: 'member-5',
+    name: 'James Lee',
+    avatar: '👨',
+    age: 29,
+    location: 'Seoul, Korea',
+    nationality: 'KR',
+    bio: 'K-pop industry insider by day, F1 fanatic by weekends. Living life in the fast lane.',
+    joinedDate: 'Sep 2023',
+    interests: {
+      sports: ['f1', 'fifa', 'mma'],
+      entertainment: ['concerts', 'anime', 'gaming'],
+      lifestyle: ['nightlife', 'photography']
+    },
+    relationshipStatus: 'single',
+    mbtiType: 'ENFP',
+    preferredGroupSize: 'small',
+    preferredTravelMonths: ['mar', 'may', 'sep', 'nov'],
+    budgetRange: 'premium',
+    tripHistory: [
+      { tripId: '10', tripTitle: 'Monaco Grand Prix VIP', status: 'completed', date: 'May 2024', location: 'Monaco' },
+      { tripId: '22', tripTitle: 'Singapore Night Race', status: 'booked', date: 'Sep 2025', location: 'Singapore', companions: 2 },
+      { tripId: '23', tripTitle: 'Japan Grand Prix Suzuka', status: 'signed-up', date: 'Oct 2025', location: 'Japan' },
+      { tripId: '24', tripTitle: 'UFC Fight Night Seoul', status: 'saved', date: 'Dec 2025', location: 'Seoul' }
+    ],
+    tripsCompleted: 4,
+    tripsUpcoming: 3,
+    squadMemberships: ['s6']
+  },
+  {
+    id: 'member-6',
+    name: 'Olivia Brown',
+    avatar: '👩‍🦳',
+    age: 45,
+    location: 'Palm Beach, FL',
+    nationality: 'US',
+    bio: 'Golf philanthropist and luxury travel connoisseur. Life is too short for bad wine and crowded courses.',
+    joinedDate: 'Feb 2023',
+    interests: {
+      sports: ['golf', 'tennis'],
+      entertainment: ['theater', 'food-tours'],
+      lifestyle: ['wine-tasting', 'art', 'wellness']
+    },
+    relationshipStatus: 'married',
+    mbtiType: 'ESFJ',
+    preferredGroupSize: 'small',
+    preferredTravelMonths: ['apr', 'may', 'sep', 'oct'],
+    budgetRange: 'luxury',
+    tripHistory: [
+      { tripId: '8', tripTitle: 'Augusta Masters Experience', status: 'completed', date: 'Apr 2024', location: 'Georgia' },
+      { tripId: '25', tripTitle: 'St Andrews Open Championship', status: 'booked', date: 'Jul 2025', location: 'Scotland', companions: 1 },
+      { tripId: '26', tripTitle: 'Pebble Beach Pro-Am', status: 'signed-up', date: 'Feb 2025', location: 'California' },
+      { tripId: 'custom-3', tripTitle: 'European Golf Tour: Spain & Portugal', status: 'created', date: 'Oct 2025', location: 'Europe' }
+    ],
+    tripsCompleted: 15,
+    tripsUpcoming: 3,
+    squadMemberships: ['s5']
+  },
+  {
+    id: 'member-7',
+    name: 'David Kim',
+    avatar: '👨‍🦲',
+    age: 38,
+    location: 'Seattle, WA',
+    nationality: 'US',
+    bio: 'Software architect who codes by day and shreds powder by winter. Mindful living, maximum adventure.',
+    joinedDate: 'Nov 2022',
+    interests: {
+      sports: ['skiing', 'golf', 'nba'],
+      entertainment: ['gaming', 'anime'],
+      lifestyle: ['wellness', 'yoga', 'photography']
+    },
+    relationshipStatus: 'married',
+    mbtiType: 'INFJ',
+    preferredGroupSize: 'small',
+    preferredTravelMonths: ['jan', 'feb', 'mar'],
+    budgetRange: 'premium',
+    tripHistory: [
+      { tripId: '1', tripTitle: 'Niseko Powder Paradise', status: 'completed', date: 'Jan 2024', location: 'Japan' },
+      { tripId: '3', tripTitle: 'Chamonix Extreme Skiing', status: 'completed', date: 'Feb 2024', location: 'France' },
+      { tripId: '27', tripTitle: 'Whistler Backcountry Week', status: 'booked', date: 'Feb 2025', location: 'Canada', companions: 1 },
+      { tripId: '28', tripTitle: 'Utah Powder Highway', status: 'saved', date: 'Mar 2025', location: 'Utah' }
+    ],
+    tripsCompleted: 10,
+    tripsUpcoming: 1,
+    squadMemberships: ['s1', 's3']
+  },
+  {
+    id: 'member-8',
+    name: 'Sophie Taylor',
+    avatar: '👱‍♀️',
+    age: 27,
+    location: 'Amsterdam, Netherlands',
+    nationality: 'NL',
+    bio: 'Sustainability consultant who believes travel can change the world. Eco-conscious adventures only.',
+    joinedDate: 'May 2023',
+    interests: {
+      sports: ['surfing', 'skiing', 'tennis'],
+      entertainment: ['music-festivals', 'film'],
+      lifestyle: ['eco-travel', 'yoga', 'photography']
+    },
+    relationshipStatus: 'looking',
+    mbtiType: 'ENFJ',
+    preferredGroupSize: 'medium',
+    preferredTravelMonths: ['may', 'jun', 'sep'],
+    budgetRange: 'moderate',
+    tripHistory: [
+      { tripId: '5', tripTitle: 'Bali Surf & Soul Retreat', status: 'completed', date: 'Sep 2024', location: 'Bali' },
+      { tripId: '29', tripTitle: 'Costa Rica Eco Adventure', status: 'booked', date: 'May 2025', location: 'Costa Rica', companions: 3 },
+      { tripId: '30', tripTitle: 'Iceland Northern Lights', status: 'signed-up', date: 'Nov 2025', location: 'Iceland' },
+      { tripId: '1', tripTitle: 'Niseko Powder Paradise', status: 'saved', date: 'Jan 2026', location: 'Japan' }
+    ],
+    tripsCompleted: 7,
+    tripsUpcoming: 2,
+    squadMemberships: ['s3']
+  },
+  {
+    id: 'member-9',
+    name: 'Michael Zhang',
+    avatar: '🧑‍💼',
+    age: 34,
+    location: 'Hong Kong',
+    nationality: 'HK',
+    bio: 'Investment banker seeking escape from the desk. Football fanatic with Premier League allegiances.',
+    joinedDate: 'Jul 2023',
+    interests: {
+      sports: ['fifa', 'golf', 'f1'],
+      entertainment: ['food-tours', 'concerts'],
+      lifestyle: ['wine-tasting', 'nightlife']
+    },
+    relationshipStatus: 'single',
+    mbtiType: 'ENTJ',
+    preferredGroupSize: 'small',
+    preferredTravelMonths: ['aug', 'dec', 'mar'],
+    budgetRange: 'luxury',
+    tripHistory: [
+      { tripId: '31', tripTitle: 'Manchester United Old Trafford', status: 'completed', date: 'Aug 2024', location: 'Manchester' },
+      { tripId: '32', tripTitle: 'El Clasico Barcelona', status: 'booked', date: 'Mar 2025', location: 'Barcelona', companions: 2 },
+      { tripId: '10', tripTitle: 'Monaco Grand Prix VIP', status: 'signed-up', date: 'May 2025', location: 'Monaco' },
+      { tripId: '33', tripTitle: 'World Cup 2026 Final', status: 'saved', date: 'Jul 2026', location: 'USA' }
+    ],
+    tripsCompleted: 5,
+    tripsUpcoming: 2,
+    squadMemberships: ['s6']
+  },
+  {
+    id: 'member-10',
+    name: 'Jessica Martinez',
+    avatar: '👩‍💻',
+    age: 30,
+    location: 'Miami, FL',
+    nationality: 'US',
+    bio: 'UX designer with an eye for beautiful places. Formula 1 obsessed, beach-life blessed.',
+    joinedDate: 'Aug 2023',
+    interests: {
+      sports: ['f1', 'surfing', 'tennis'],
+      entertainment: ['music-festivals', 'film', 'food-tours'],
+      lifestyle: ['photography', 'nightlife', 'wellness']
+    },
+    relationshipStatus: 'couple',
+    mbtiType: 'ISFP',
+    preferredGroupSize: 'duo',
+    preferredTravelMonths: ['may', 'oct', 'dec'],
+    budgetRange: 'premium',
+    tripHistory: [
+      { tripId: '34', tripTitle: 'Miami Grand Prix Weekend', status: 'completed', date: 'May 2024', location: 'Miami' },
+      { tripId: '10', tripTitle: 'Monaco Grand Prix VIP', status: 'booked', date: 'May 2025', location: 'Monaco', companions: 1 },
+      { tripId: '35', tripTitle: 'Abu Dhabi Season Finale', status: 'signed-up', date: 'Dec 2025', location: 'Abu Dhabi' },
+      { tripId: 'custom-4', tripTitle: 'F1 European Triple Header', status: 'created', date: 'Jul 2025', location: 'Europe' }
+    ],
+    tripsCompleted: 6,
+    tripsUpcoming: 3,
+    squadMemberships: ['s2']
+  },
+  {
+    id: 'member-11',
+    name: 'Ryan Park',
+    avatar: '🧑',
+    age: 26,
+    location: 'Los Angeles, CA',
+    nationality: 'US',
+    bio: 'Content creator documenting sports adventures. If it\'s epic, I\'m filming it.',
+    joinedDate: 'Oct 2023',
+    interests: {
+      sports: ['nba', 'surfing', 'mma'],
+      entertainment: ['concerts', 'film', 'gaming'],
+      lifestyle: ['photography', 'nightlife']
+    },
+    relationshipStatus: 'single',
+    mbtiType: 'ESTP',
+    preferredGroupSize: 'medium',
+    preferredTravelMonths: ['jun', 'jul', 'nov'],
+    budgetRange: 'moderate',
+    tripHistory: [
+      { tripId: '15', tripTitle: 'NBA All-Star Weekend', status: 'completed', date: 'Feb 2024', location: 'Indianapolis' },
+      { tripId: '36', tripTitle: 'UFC International Fight Week', status: 'booked', date: 'Jul 2025', location: 'Las Vegas', companions: 4 },
+      { tripId: '37', tripTitle: 'Hawaii Surf Camp', status: 'signed-up', date: 'Aug 2025', location: 'Hawaii' },
+      { tripId: '38', tripTitle: 'Lakers vs Celtics Rivalry', status: 'saved', date: 'Dec 2025', location: 'Boston' }
+    ],
+    tripsCompleted: 8,
+    tripsUpcoming: 2,
+    squadMemberships: ['s4']
+  },
+  {
+    id: 'member-12',
+    name: 'Emily Davis',
+    avatar: '👩‍🎨',
+    age: 33,
+    location: 'Portland, OR',
+    nationality: 'US',
+    bio: 'Photographer capturing quiet moments around the world. Slow travel, deep experiences.',
+    joinedDate: 'Dec 2022',
+    interests: {
+      sports: ['skiing', 'surfing', 'tennis'],
+      entertainment: ['film', 'theater'],
+      lifestyle: ['photography', 'art', 'wellness', 'eco-travel']
+    },
+    relationshipStatus: 'couple',
+    mbtiType: 'INFP',
+    preferredGroupSize: 'duo',
+    preferredTravelMonths: ['apr', 'may', 'sep', 'oct'],
+    budgetRange: 'moderate',
+    tripHistory: [
+      { tripId: '29', tripTitle: 'Costa Rica Eco Adventure', status: 'completed', date: 'Oct 2024', location: 'Costa Rica' },
+      { tripId: '39', tripTitle: 'Japan Photography Tour', status: 'booked', date: 'Apr 2025', location: 'Japan', companions: 1 },
+      { tripId: '40', tripTitle: 'Iceland Landscapes', status: 'signed-up', date: 'Sep 2025', location: 'Iceland' },
+      { tripId: 'custom-5', tripTitle: 'New Zealand South Island', status: 'created', date: 'Nov 2025', location: 'New Zealand' }
+    ],
+    tripsCompleted: 11,
+    tripsUpcoming: 3,
+    squadMemberships: ['s3']
+  },
+  {
+    id: 'member-13',
+    name: 'Daniel Wong',
+    avatar: '👨‍🔬',
+    age: 36,
+    location: 'Singapore',
+    nationality: 'SG',
+    bio: 'Data scientist by trade, tennis enthusiast by passion. Chasing Grand Slams around the globe.',
+    joinedDate: 'Mar 2023',
+    interests: {
+      sports: ['tennis', 'f1', 'golf'],
+      entertainment: ['food-tours', 'concerts'],
+      lifestyle: ['wine-tasting', 'wellness']
+    },
+    relationshipStatus: 'married',
+    mbtiType: 'INTP',
+    preferredGroupSize: 'small',
+    preferredTravelMonths: ['jan', 'may', 'jun', 'sep'],
+    budgetRange: 'premium',
+    tripHistory: [
+      { tripId: '12', tripTitle: 'Australian Open Experience', status: 'completed', date: 'Jan 2024', location: 'Melbourne' },
+      { tripId: '11', tripTitle: 'Wimbledon Championships VIP', status: 'booked', date: 'Jul 2025', location: 'London', companions: 1 },
+      { tripId: '41', tripTitle: 'US Open New York', status: 'signed-up', date: 'Sep 2025', location: 'New York' },
+      { tripId: '22', tripTitle: 'Singapore Night Race', status: 'saved', date: 'Sep 2025', location: 'Singapore' }
+    ],
+    tripsCompleted: 7,
+    tripsUpcoming: 2,
+    squadMemberships: ['s5']
+  },
+  {
+    id: 'member-14',
+    name: 'Ava Thompson',
+    avatar: '👩‍🏫',
+    age: 29,
+    location: 'Denver, CO',
+    nationality: 'US',
+    bio: 'Elementary school teacher with summers off for adventure. Ski bum at heart, world traveler by calling.',
+    joinedDate: 'Jun 2023',
+    interests: {
+      sports: ['skiing', 'nfl', 'mlb'],
+      entertainment: ['music-festivals', 'theater'],
+      lifestyle: ['eco-travel', 'photography', 'yoga']
+    },
+    relationshipStatus: 'single',
+    mbtiType: 'ENFJ',
+    preferredGroupSize: 'medium',
+    preferredTravelMonths: ['jun', 'jul', 'aug', 'dec', 'jan'],
+    budgetRange: 'budget',
+    tripHistory: [
+      { tripId: '27', tripTitle: 'Whistler Backcountry Week', status: 'completed', date: 'Feb 2024', location: 'Canada' },
+      { tripId: '42', tripTitle: 'Colorado Rockies Road Trip', status: 'completed', date: 'Jul 2024', location: 'Colorado' },
+      { tripId: '1', tripTitle: 'Niseko Powder Paradise', status: 'signed-up', date: 'Jan 2025', location: 'Japan' },
+      { tripId: '16', tripTitle: 'Super Bowl Experience', status: 'saved', date: 'Feb 2025', location: 'New Orleans' }
+    ],
+    tripsCompleted: 9,
+    tripsUpcoming: 1,
+    squadMemberships: ['s1', 's7']
+  },
+  {
+    id: 'member-15',
+    name: 'Chris Anderson',
+    avatar: '👨‍✈️',
+    age: 42,
+    location: 'Dallas, TX',
+    nationality: 'US',
+    bio: 'Airline pilot who collects airline miles and NFL games. Every stadium, every team, every season.',
+    joinedDate: 'Sep 2022',
+    interests: {
+      sports: ['nfl', 'golf', 'nba'],
+      entertainment: ['concerts', 'gaming'],
+      lifestyle: ['nightlife', 'wine-tasting']
+    },
+    relationshipStatus: 'family',
+    mbtiType: 'ESTJ',
+    preferredGroupSize: 'large',
+    preferredTravelMonths: ['sep', 'oct', 'nov', 'dec', 'jan'],
+    budgetRange: 'premium',
+    tripHistory: [
+      { tripId: '16', tripTitle: 'Super Bowl LVIII Las Vegas', status: 'completed', date: 'Feb 2024', location: 'Las Vegas' },
+      { tripId: '43', tripTitle: 'NFL Thanksgiving Triple Header', status: 'completed', date: 'Nov 2024', location: 'Multiple' },
+      { tripId: '44', tripTitle: 'Cowboys vs Eagles Rivalry', status: 'booked', date: 'Oct 2025', location: 'Philadelphia', companions: 3 },
+      { tripId: 'custom-6', tripTitle: 'Complete AFC West Tour', status: 'created', date: 'Nov 2025', location: 'West Coast' }
+    ],
+    tripsCompleted: 18,
+    tripsUpcoming: 2,
+    squadMemberships: ['s4']
+  },
+  {
+    id: 'member-16',
+    name: 'Mia Garcia',
+    avatar: '💃',
+    age: 25,
+    location: 'Buenos Aires, Argentina',
+    nationality: 'AR',
+    bio: 'Professional dancer who lives for football. Boca or death. World Cup dreams.',
+    joinedDate: 'Nov 2023',
+    interests: {
+      sports: ['fifa', 'tennis', 'mma'],
+      entertainment: ['music-festivals', 'theater', 'concerts'],
+      lifestyle: ['nightlife', 'art']
+    },
+    relationshipStatus: 'looking',
+    mbtiType: 'ISFP',
+    preferredGroupSize: 'medium',
+    preferredTravelMonths: ['mar', 'jun', 'nov'],
+    budgetRange: 'budget',
+    tripHistory: [
+      { tripId: '45', tripTitle: 'Boca vs River Superclasico', status: 'completed', date: 'Oct 2024', location: 'Buenos Aires' },
+      { tripId: '32', tripTitle: 'El Clasico Barcelona', status: 'signed-up', date: 'Mar 2025', location: 'Barcelona' },
+      { tripId: '46', tripTitle: 'Copa America 2025', status: 'saved', date: 'Jun 2025', location: 'Ecuador' },
+      { tripId: '33', tripTitle: 'World Cup 2026', status: 'saved', date: 'Jul 2026', location: 'USA' }
+    ],
+    tripsCompleted: 3,
+    tripsUpcoming: 1,
+    squadMemberships: ['s6']
+  },
+  {
+    id: 'member-17',
+    name: 'Kevin Liu',
+    avatar: '🧑‍🎤',
+    age: 31,
+    location: 'Taipei, Taiwan',
+    nationality: 'TW',
+    bio: 'Music producer traveling the world for inspiration. Baseball and beats are my life.',
+    joinedDate: 'Apr 2023',
+    interests: {
+      sports: ['mlb', 'nba', 'skiing'],
+      entertainment: ['concerts', 'music-festivals', 'anime'],
+      lifestyle: ['nightlife', 'photography']
+    },
+    relationshipStatus: 'single',
+    mbtiType: 'ENFP',
+    preferredGroupSize: 'small',
+    preferredTravelMonths: ['apr', 'jul', 'oct'],
+    budgetRange: 'moderate',
+    tripHistory: [
+      { tripId: '47', tripTitle: 'MLB Japan Opening Series', status: 'completed', date: 'Mar 2024', location: 'Tokyo' },
+      { tripId: '48', tripTitle: 'Yankees vs Red Sox Boston', status: 'booked', date: 'Jul 2025', location: 'Boston', companions: 2 },
+      { tripId: '49', tripTitle: 'World Series Experience', status: 'signed-up', date: 'Oct 2025', location: 'TBD' },
+      { tripId: '15', tripTitle: 'NBA All-Star Weekend', status: 'saved', date: 'Feb 2025', location: 'San Francisco' }
+    ],
+    tripsCompleted: 6,
+    tripsUpcoming: 2,
+    squadMemberships: ['s4']
+  },
+  {
+    id: 'member-18',
+    name: 'Isabella Moore',
+    avatar: '👸',
+    age: 28,
+    location: 'Monaco',
+    nationality: 'MC',
+    bio: 'Luxury lifestyle blogger covering F1, tennis, and the finer things. If it sparkles, I\'m there.',
+    joinedDate: 'Jan 2023',
+    interests: {
+      sports: ['f1', 'tennis', 'golf'],
+      entertainment: ['film', 'theater', 'food-tours'],
+      lifestyle: ['wine-tasting', 'art', 'wellness']
+    },
+    relationshipStatus: 'couple',
+    mbtiType: 'ESFP',
+    preferredGroupSize: 'duo',
+    preferredTravelMonths: ['may', 'jun', 'jul', 'sep'],
+    budgetRange: 'luxury',
+    tripHistory: [
+      { tripId: '10', tripTitle: 'Monaco Grand Prix VIP', status: 'completed', date: 'May 2024', location: 'Monaco' },
+      { tripId: '11', tripTitle: 'Wimbledon Championships VIP', status: 'completed', date: 'Jul 2024', location: 'London' },
+      { tripId: '50', tripTitle: 'Italian GP Monza Paddock', status: 'booked', date: 'Sep 2025', location: 'Monza', companions: 1 },
+      { tripId: '8', tripTitle: 'Augusta Masters Experience', status: 'saved', date: 'Apr 2026', location: 'Georgia' }
+    ],
+    tripsCompleted: 14,
+    tripsUpcoming: 1,
+    squadMemberships: ['s5', 's8']
+  },
+  {
+    id: 'member-19',
+    name: 'Andrew White',
+    avatar: '🤵',
+    age: 40,
+    location: 'Edinburgh, Scotland',
+    nationality: 'UK',
+    bio: 'Whisky collector and links golf purist. Chasing the perfect round on the oldest courses.',
+    joinedDate: 'May 2022',
+    interests: {
+      sports: ['golf', 'nhl', 'fifa'],
+      entertainment: ['theater', 'food-tours'],
+      lifestyle: ['wine-tasting', 'art']
+    },
+    relationshipStatus: 'married',
+    mbtiType: 'ISTJ',
+    preferredGroupSize: 'small',
+    preferredTravelMonths: ['apr', 'jul', 'sep'],
+    budgetRange: 'luxury',
+    tripHistory: [
+      { tripId: '25', tripTitle: 'St Andrews Open Championship', status: 'completed', date: 'Jul 2024', location: 'Scotland' },
+      { tripId: '8', tripTitle: 'Augusta Masters Experience', status: 'completed', date: 'Apr 2024', location: 'Georgia' },
+      { tripId: '51', tripTitle: 'Ireland Golf Links Tour', status: 'booked', date: 'Sep 2025', location: 'Ireland', companions: 3 },
+      { tripId: 'custom-7', tripTitle: 'Scotland Whisky & Golf', status: 'created', date: 'Jul 2026', location: 'Scotland' }
+    ],
+    tripsCompleted: 20,
+    tripsUpcoming: 1,
+    squadMemberships: ['s5']
+  },
+  {
+    id: 'member-20',
+    name: 'Grace Lee',
+    avatar: '👩‍⚕️',
+    age: 35,
+    location: 'Vancouver, BC',
+    nationality: 'CA',
+    bio: 'ER doctor who needs mountains to decompress. Skiing is my therapy, hockey is my religion.',
+    joinedDate: 'Oct 2022',
+    interests: {
+      sports: ['skiing', 'nhl', 'surfing'],
+      entertainment: ['concerts', 'film'],
+      lifestyle: ['wellness', 'yoga', 'eco-travel']
+    },
+    relationshipStatus: 'single',
+    mbtiType: 'ISTP',
+    preferredGroupSize: 'small',
+    preferredTravelMonths: ['jan', 'feb', 'mar', 'dec'],
+    budgetRange: 'premium',
+    tripHistory: [
+      { tripId: '27', tripTitle: 'Whistler Backcountry Week', status: 'completed', date: 'Feb 2024', location: 'Canada' },
+      { tripId: '52', tripTitle: 'Stanley Cup Finals', status: 'completed', date: 'Jun 2024', location: 'Edmonton' },
+      { tripId: '3', tripTitle: 'Chamonix Extreme Skiing', status: 'booked', date: 'Feb 2025', location: 'France', companions: 2 },
+      { tripId: '53', tripTitle: 'NHL Winter Classic', status: 'signed-up', date: 'Jan 2025', location: 'Outdoor TBD' }
+    ],
+    tripsCompleted: 12,
+    tripsUpcoming: 2,
+    squadMemberships: ['s1']
+  },
+  {
+    id: 'member-21',
+    name: 'Tyler Jackson',
+    avatar: '🧔',
+    age: 33,
+    location: 'Phoenix, AZ',
+    nationality: 'US',
+    bio: 'Fantasy sports champion and golf weekend warrior. Data drives my picks, sunshine drives my putts.',
+    joinedDate: 'Feb 2023',
+    interests: {
+      sports: ['nba', 'nfl', 'golf', 'mlb'],
+      entertainment: ['gaming', 'concerts'],
+      lifestyle: ['nightlife', 'photography']
+    },
+    relationshipStatus: 'looking',
+    mbtiType: 'INTP',
+    preferredGroupSize: 'medium',
+    preferredTravelMonths: ['feb', 'mar', 'oct'],
+    budgetRange: 'moderate',
+    tripHistory: [
+      { tripId: '54', tripTitle: 'Phoenix Open Golf', status: 'completed', date: 'Feb 2024', location: 'Scottsdale' },
+      { tripId: '15', tripTitle: 'NBA All-Star Weekend', status: 'completed', date: 'Feb 2024', location: 'Indianapolis' },
+      { tripId: '55', tripTitle: 'March Madness Final Four', status: 'booked', date: 'Apr 2025', location: 'San Antonio', companions: 3 },
+      { tripId: '16', tripTitle: 'Super Bowl LX', status: 'saved', date: 'Feb 2026', location: 'TBD' }
+    ],
+    tripsCompleted: 9,
+    tripsUpcoming: 1,
+    squadMemberships: ['s4']
+  },
+  {
+    id: 'member-22',
+    name: 'Chloe Harris',
+    avatar: '👩‍🍳',
+    age: 30,
+    location: 'Lyon, France',
+    nationality: 'FR',
+    bio: 'Chef exploring cuisines around the world. Tennis and food tours fuel my passport stamps.',
+    joinedDate: 'Jul 2023',
+    interests: {
+      sports: ['tennis', 'fifa', 'skiing'],
+      entertainment: ['food-tours', 'film', 'theater'],
+      lifestyle: ['wine-tasting', 'art', 'photography']
+    },
+    relationshipStatus: 'single',
+    mbtiType: 'ENFJ',
+    preferredGroupSize: 'small',
+    preferredTravelMonths: ['may', 'jun', 'sep'],
+    budgetRange: 'moderate',
+    tripHistory: [
+      { tripId: '56', tripTitle: 'French Open Roland Garros', status: 'completed', date: 'Jun 2024', location: 'Paris' },
+      { tripId: '57', tripTitle: 'Italy Food & Tennis Tour', status: 'booked', date: 'Sep 2025', location: 'Rome', companions: 2 },
+      { tripId: '11', tripTitle: 'Wimbledon Championships', status: 'signed-up', date: 'Jul 2025', location: 'London' },
+      { tripId: 'custom-8', tripTitle: 'Spain Tapas & Flamenco', status: 'created', date: 'Oct 2025', location: 'Spain' }
+    ],
+    tripsCompleted: 8,
+    tripsUpcoming: 2,
+    squadMemberships: ['s2']
+  },
+  {
+    id: 'member-23',
+    name: 'Nathan Clark',
+    avatar: '🕵️',
+    age: 37,
+    location: 'Las Vegas, NV',
+    nationality: 'US',
+    bio: 'Casino host turned MMA superfan. Vegas born and raised, octagon obsessed.',
+    joinedDate: 'Aug 2023',
+    interests: {
+      sports: ['mma', 'nfl', 'nba'],
+      entertainment: ['concerts', 'gaming'],
+      lifestyle: ['nightlife']
+    },
+    relationshipStatus: 'single',
+    mbtiType: 'ESTP',
+    preferredGroupSize: 'large',
+    preferredTravelMonths: ['jul', 'oct', 'dec'],
+    budgetRange: 'premium',
+    tripHistory: [
+      { tripId: '36', tripTitle: 'UFC International Fight Week', status: 'completed', date: 'Jul 2024', location: 'Las Vegas' },
+      { tripId: '58', tripTitle: 'UFC 300 Mega Card', status: 'completed', date: 'Apr 2024', location: 'Las Vegas' },
+      { tripId: '59', tripTitle: 'UFC Abu Dhabi', status: 'booked', date: 'Oct 2025', location: 'Abu Dhabi', companions: 4 },
+      { tripId: '60', tripTitle: 'Conor McGregor Return', status: 'saved', date: 'Dec 2025', location: 'TBD' }
+    ],
+    tripsCompleted: 11,
+    tripsUpcoming: 1,
+    squadMemberships: ['s4']
+  },
+  {
+    id: 'member-24',
+    name: 'Lily Robinson',
+    avatar: '🧕',
+    age: 27,
+    location: 'Dubai, UAE',
+    nationality: 'AE',
+    bio: 'Fashion influencer with a love for football and luxury experiences. Style meets sport.',
+    joinedDate: 'Sep 2023',
+    interests: {
+      sports: ['fifa', 'f1', 'tennis'],
+      entertainment: ['film', 'concerts', 'food-tours'],
+      lifestyle: ['art', 'nightlife', 'wellness']
+    },
+    relationshipStatus: 'couple',
+    mbtiType: 'ESFP',
+    preferredGroupSize: 'duo',
+    preferredTravelMonths: ['nov', 'dec', 'mar'],
+    budgetRange: 'luxury',
+    tripHistory: [
+      { tripId: '35', tripTitle: 'Abu Dhabi F1 Season Finale', status: 'completed', date: 'Dec 2024', location: 'Abu Dhabi' },
+      { tripId: '61', tripTitle: 'PSG Champions League', status: 'booked', date: 'Mar 2025', location: 'Paris', companions: 1 },
+      { tripId: '62', tripTitle: 'Dubai Tennis Championships', status: 'signed-up', date: 'Feb 2025', location: 'Dubai' },
+      { tripId: '33', tripTitle: 'World Cup 2026', status: 'saved', date: 'Jul 2026', location: 'USA' }
+    ],
+    tripsCompleted: 5,
+    tripsUpcoming: 2,
+    squadMemberships: ['s6', 's8']
+  },
+  {
+    id: 'member-25',
+    name: 'Brandon Scott',
+    avatar: '👷',
+    age: 44,
+    location: 'Detroit, MI',
+    nationality: 'US',
+    bio: 'Auto industry veteran and hockey die-hard. Wings forever, pistons in my blood.',
+    joinedDate: 'Nov 2022',
+    interests: {
+      sports: ['nhl', 'nfl', 'mlb'],
+      entertainment: ['concerts', 'gaming'],
+      lifestyle: ['photography']
+    },
+    relationshipStatus: 'family',
+    mbtiType: 'ISTJ',
+    preferredGroupSize: 'medium',
+    preferredTravelMonths: ['apr', 'jun', 'oct'],
+    budgetRange: 'moderate',
+    tripHistory: [
+      { tripId: '52', tripTitle: 'Stanley Cup Finals', status: 'completed', date: 'Jun 2024', location: 'Florida' },
+      { tripId: '63', tripTitle: 'NHL Original Six Tour', status: 'completed', date: 'Jan 2024', location: 'Multiple' },
+      { tripId: '64', tripTitle: 'Red Wings vs Avalanche', status: 'booked', date: 'Feb 2025', location: 'Denver', companions: 2 },
+      { tripId: 'custom-9', tripTitle: 'Hockey Hall of Fame Toronto', status: 'created', date: 'Mar 2025', location: 'Toronto' }
+    ],
+    tripsCompleted: 14,
+    tripsUpcoming: 2,
+    squadMemberships: ['s4']
+  },
+  {
+    id: 'member-26',
+    name: 'Zoe Adams',
+    avatar: '💁‍♀️',
+    age: 24,
+    location: 'Austin, TX',
+    nationality: 'US',
+    bio: 'Music industry newcomer who lives for festivals and F1. Austin is home, the world is my stage.',
+    joinedDate: 'Mar 2024',
+    interests: {
+      sports: ['f1', 'surfing', 'mma'],
+      entertainment: ['music-festivals', 'concerts', 'film'],
+      lifestyle: ['nightlife', 'photography', 'yoga']
+    },
+    relationshipStatus: 'single',
+    mbtiType: 'ENFP',
+    preferredGroupSize: 'large',
+    preferredTravelMonths: ['mar', 'oct', 'dec'],
+    budgetRange: 'budget',
+    tripHistory: [
+      { tripId: '65', tripTitle: 'Austin F1 US Grand Prix', status: 'completed', date: 'Oct 2024', location: 'Austin' },
+      { tripId: '20', tripTitle: 'Coachella Music Festival', status: 'signed-up', date: 'Apr 2025', location: 'California' },
+      { tripId: '22', tripTitle: 'Singapore Night Race', status: 'saved', date: 'Sep 2025', location: 'Singapore' },
+      { tripId: '66', tripTitle: 'Ultra Music Festival', status: 'saved', date: 'Mar 2025', location: 'Miami' }
+    ],
+    tripsCompleted: 2,
+    tripsUpcoming: 1,
+    squadMemberships: ['s2']
+  },
+  {
+    id: 'member-27',
+    name: 'Justin Baker',
+    avatar: '🧑‍🚀',
+    age: 32,
+    location: 'Houston, TX',
+    nationality: 'US',
+    bio: 'Aerospace engineer with NFL Sundays blocked on the calendar. Texans through thick and thin.',
+    joinedDate: 'Aug 2022',
+    interests: {
+      sports: ['nfl', 'mlb', 'golf'],
+      entertainment: ['gaming', 'film'],
+      lifestyle: ['eco-travel', 'photography']
+    },
+    relationshipStatus: 'married',
+    mbtiType: 'INTJ',
+    preferredGroupSize: 'small',
+    preferredTravelMonths: ['sep', 'oct', 'nov', 'jan'],
+    budgetRange: 'premium',
+    tripHistory: [
+      { tripId: '16', tripTitle: 'Super Bowl LVIII', status: 'completed', date: 'Feb 2024', location: 'Las Vegas' },
+      { tripId: '67', tripTitle: 'NFL London International', status: 'completed', date: 'Oct 2024', location: 'London' },
+      { tripId: '68', tripTitle: 'College Football Playoff', status: 'booked', date: 'Jan 2025', location: 'Multiple', companions: 1 },
+      { tripId: '69', tripTitle: 'Super Bowl LX', status: 'saved', date: 'Feb 2026', location: 'TBD' }
+    ],
+    tripsCompleted: 10,
+    tripsUpcoming: 1,
+    squadMemberships: ['s4']
+  },
+  {
+    id: 'member-28',
+    name: 'Hannah Nelson',
+    avatar: '👩‍🔧',
+    age: 29,
+    location: 'Munich, Germany',
+    nationality: 'DE',
+    bio: 'Automotive engineer and Bundesliga devotee. Bayern Munich is life, the Autobahn is a playground.',
+    joinedDate: 'Jan 2024',
+    interests: {
+      sports: ['fifa', 'f1', 'skiing'],
+      entertainment: ['concerts', 'food-tours'],
+      lifestyle: ['nightlife', 'photography']
+    },
+    relationshipStatus: 'looking',
+    mbtiType: 'ESTJ',
+    preferredGroupSize: 'medium',
+    preferredTravelMonths: ['jun', 'aug', 'dec'],
+    budgetRange: 'moderate',
+    tripHistory: [
+      { tripId: '70', tripTitle: 'Bayern Munich Allianz Arena', status: 'completed', date: 'Aug 2024', location: 'Munich' },
+      { tripId: '71', tripTitle: 'Euro 2024 Germany', status: 'completed', date: 'Jul 2024', location: 'Germany' },
+      { tripId: '32', tripTitle: 'El Clasico Barcelona', status: 'booked', date: 'Mar 2025', location: 'Barcelona', companions: 3 },
+      { tripId: '1', tripTitle: 'Niseko Powder Paradise', status: 'saved', date: 'Jan 2026', location: 'Japan' }
+    ],
+    tripsCompleted: 4,
+    tripsUpcoming: 1,
+    squadMemberships: ['s6']
+  },
+  {
+    id: 'member-29',
+    name: 'Eric Hill',
+    avatar: '🤴',
+    age: 48,
+    location: 'Scottsdale, AZ',
+    nationality: 'US',
+    bio: 'Retired tech exec living the dream. Golf, wine, and watching my kids play college sports.',
+    joinedDate: 'Jun 2022',
+    interests: {
+      sports: ['golf', 'tennis', 'nfl'],
+      entertainment: ['theater', 'food-tours'],
+      lifestyle: ['wine-tasting', 'wellness', 'art']
+    },
+    relationshipStatus: 'family',
+    mbtiType: 'ESTJ',
+    preferredGroupSize: 'small',
+    preferredTravelMonths: ['feb', 'apr', 'oct'],
+    budgetRange: 'luxury',
+    tripHistory: [
+      { tripId: '54', tripTitle: 'Phoenix Open Golf', status: 'completed', date: 'Feb 2024', location: 'Scottsdale' },
+      { tripId: '8', tripTitle: 'Augusta Masters Experience', status: 'completed', date: 'Apr 2024', location: 'Georgia' },
+      { tripId: '72', tripTitle: 'Ryder Cup Europe', status: 'booked', date: 'Sep 2025', location: 'Ireland', companions: 3 },
+      { tripId: 'custom-10', tripTitle: 'Napa Wine & Golf Retreat', status: 'created', date: 'Oct 2025', location: 'California' }
+    ],
+    tripsCompleted: 22,
+    tripsUpcoming: 1,
+    squadMemberships: ['s5', 's7']
+  },
+  {
+    id: 'member-30',
+    name: 'Natalie Young',
+    avatar: '🙋‍♀️',
+    age: 26,
+    location: 'Melbourne, Australia',
+    nationality: 'AU',
+    bio: 'Sports physio who treats athletes and chases waves. Aussie Open by day, Bells Beach by weekend.',
+    joinedDate: 'Dec 2023',
+    interests: {
+      sports: ['tennis', 'surfing', 'f1'],
+      entertainment: ['music-festivals', 'concerts'],
+      lifestyle: ['wellness', 'yoga', 'eco-travel']
+    },
+    relationshipStatus: 'single',
+    mbtiType: 'ESFP',
+    preferredGroupSize: 'medium',
+    preferredTravelMonths: ['jan', 'mar', 'jul'],
+    budgetRange: 'moderate',
+    tripHistory: [
+      { tripId: '12', tripTitle: 'Australian Open Experience', status: 'completed', date: 'Jan 2024', location: 'Melbourne' },
+      { tripId: '73', tripTitle: 'Great Ocean Road Surf Trip', status: 'completed', date: 'Mar 2024', location: 'Victoria' },
+      { tripId: '74', tripTitle: 'Bali Surf & Yoga Retreat', status: 'booked', date: 'Jul 2025', location: 'Bali', companions: 2 },
+      { tripId: '75', tripTitle: 'Australian GP Melbourne', status: 'signed-up', date: 'Mar 2025', location: 'Melbourne' }
+    ],
+    tripsCompleted: 6,
+    tripsUpcoming: 2,
+    squadMemberships: ['s2', 's3']
+  }
+];
+
+// Helper functions for filtering members
+export const getMembersByInterest = (interest: SportInterest | EntertainmentInterest | LifestyleInterest) => {
+  return memberProfiles.filter(m =>
+    m.interests.sports.includes(interest as SportInterest) ||
+    m.interests.entertainment.includes(interest as EntertainmentInterest) ||
+    m.interests.lifestyle.includes(interest as LifestyleInterest)
+  );
+};
+
+export const getMembersByMBTI = (mbtiType: MBTIType) => {
+  return memberProfiles.filter(m => m.mbtiType === mbtiType);
+};
+
+export const getMembersByMBTICategory = (category: 'analysts' | 'diplomats' | 'sentinels' | 'explorers') => {
+  const mbtiGroups = {
+    analysts: ['INTJ', 'INTP', 'ENTJ', 'ENTP'],
+    diplomats: ['INFJ', 'INFP', 'ENFJ', 'ENFP'],
+    sentinels: ['ISTJ', 'ISFJ', 'ESTJ', 'ESFJ'],
+    explorers: ['ISTP', 'ISFP', 'ESTP', 'ESFP']
+  };
+  return memberProfiles.filter(m => mbtiGroups[category].includes(m.mbtiType));
+};
+
+export const getMembersByRelationshipStatus = (status: RelationshipStatus) => {
+  return memberProfiles.filter(m => m.relationshipStatus === status);
+};
+
+export const getMembersByGroupSize = (size: GroupSizePreference) => {
+  return memberProfiles.filter(m => m.preferredGroupSize === size || m.preferredGroupSize === 'any');
+};
+
+export const getMembersByBudget = (budget: BudgetRange) => {
+  return memberProfiles.filter(m => m.budgetRange === budget || m.budgetRange === 'flexible');
+};
+
+export const getMembersByTravelMonth = (month: TravelMonth) => {
+  return memberProfiles.filter(m => m.preferredTravelMonths.includes(month) || m.preferredTravelMonths.includes('flexible'));
+};
+
+export const getMemberTripsByStatus = (memberId: string, status: MemberTripHistory['status']) => {
+  const member = memberProfiles.find(m => m.id === memberId);
+  return member?.tripHistory.filter(t => t.status === status) || [];
+};
+
+export const getMembersWithUpcomingTrips = () => {
+  return memberProfiles.filter(m => m.tripsUpcoming > 0);
+};
+
+export const getMostActiveTravelers = (limit = 10) => {
+  return [...memberProfiles].sort((a, b) => b.tripsCompleted - a.tripsCompleted).slice(0, limit);
+};
+
 export interface TripListing {
   id: string;
   title: string;
@@ -24,11 +1021,110 @@ export interface TripListing {
   highlights: string[];
   included: string[];
   description: string;
+  // New social and ranking data
+  memberData?: TripMemberData;
+  rankingData?: TripRankingData;
 }
 
 // Helper to generate unique IDs
 let idCounter = 1;
 const genId = () => String(idCounter++);
+
+// Sample member names and avatars for social data
+const sampleMembers = [
+  { name: 'Alex Chen', avatar: '👨‍💼' },
+  { name: 'Sarah Johnson', avatar: '👩‍🦰' },
+  { name: 'Marcus Smith', avatar: '👨‍🦱' },
+  { name: 'Emma Wilson', avatar: '👩' },
+  { name: 'James Lee', avatar: '👨' },
+  { name: 'Olivia Brown', avatar: '👩‍🦳' },
+  { name: 'David Kim', avatar: '👨‍🦲' },
+  { name: 'Sophie Taylor', avatar: '👱‍♀️' },
+  { name: 'Michael Zhang', avatar: '🧑‍💼' },
+  { name: 'Jessica Martinez', avatar: '👩‍💻' },
+  { name: 'Ryan Park', avatar: '🧑' },
+  { name: 'Emily Davis', avatar: '👩‍🎨' },
+  { name: 'Daniel Wong', avatar: '👨‍🔬' },
+  { name: 'Ava Thompson', avatar: '👩‍🏫' },
+  { name: 'Chris Anderson', avatar: '👨‍✈️' },
+  { name: 'Mia Garcia', avatar: '💃' },
+  { name: 'Kevin Liu', avatar: '🧑‍🎤' },
+  { name: 'Isabella Moore', avatar: '👸' },
+  { name: 'Andrew White', avatar: '🤵' },
+  { name: 'Grace Lee', avatar: '👩‍⚕️' },
+  { name: 'Tyler Jackson', avatar: '🧔' },
+  { name: 'Chloe Harris', avatar: '👩‍🍳' },
+  { name: 'Nathan Clark', avatar: '🕵️' },
+  { name: 'Lily Robinson', avatar: '🧕' },
+  { name: 'Brandon Scott', avatar: '👷' },
+  { name: 'Zoe Adams', avatar: '💁‍♀️' },
+  { name: 'Justin Baker', avatar: '🧑‍🚀' },
+  { name: 'Hannah Nelson', avatar: '👩‍🔧' },
+  { name: 'Eric Hill', avatar: '🤴' },
+  { name: 'Natalie Young', avatar: '🙋‍♀️' },
+];
+
+// Generate random member data for a trip
+const generateMemberData = (seed: number): TripMemberData => {
+  const maxSpots = 8 + (seed % 8); // 8-16 spots
+  const bookedCount = Math.floor(seed % 6) + 1; // 1-6 booked
+  const signedUpCount = Math.floor((seed * 2) % 4); // 0-3 signed up (interested)
+  const savedCount = Math.floor((seed * 3) % 8) + 2; // 2-9 saved
+
+  const shuffled = [...sampleMembers].sort(() => 0.5 - Math.sin(seed));
+
+  const booked = shuffled.slice(0, bookedCount).map((m, i) => ({
+    ...m,
+    date: `${['Jan', 'Feb', 'Mar', 'Dec'][i % 4]} ${10 + i}, 2024`,
+    spotsReserved: 1 + (i % 2)
+  }));
+
+  const signedUp = shuffled.slice(bookedCount, bookedCount + signedUpCount).map((m, i) => ({
+    ...m,
+    date: `${['Jan', 'Feb', 'Mar'][i % 3]} ${5 + i}, 2024`
+  }));
+
+  const saved = shuffled.slice(bookedCount + signedUpCount, bookedCount + signedUpCount + savedCount).map((m, i) => ({
+    ...m,
+    savedAt: `${i + 1} day${i > 0 ? 's' : ''} ago`
+  }));
+
+  return {
+    signedUp,
+    booked,
+    saved,
+    totalSignups: signedUpCount,
+    totalBooked: bookedCount,
+    totalSaved: savedCount,
+    spotsLeft: maxSpots - booked.reduce((acc, b) => acc + b.spotsReserved, 0),
+    maxSpots
+  };
+};
+
+// Generate ranking data for a trip
+const generateRankingData = (seed: number, totalTrips: number): TripRankingData => {
+  const currentRank = (seed % totalTrips) + 1;
+  const previousRank = currentRank + (seed % 5) - 2; // +/- 2 positions
+  const rankChange: 'up' | 'down' | 'same' | 'new' =
+    currentRank < previousRank ? 'up' :
+    currentRank > previousRank ? 'down' :
+    seed % 10 === 0 ? 'new' : 'same';
+
+  return {
+    currentRank,
+    previousRank: Math.max(1, previousRank),
+    rankChange,
+    weeklyViews: 100 + (seed * 17) % 900, // 100-1000 views
+    monthlyBookings: 5 + (seed * 3) % 25, // 5-30 bookings
+    trendingScore: 30 + (seed * 7) % 70, // 30-100 score
+    popularityHistory: [
+      { week: 'Week 1', rank: currentRank + 5, bookings: 3 + (seed % 5) },
+      { week: 'Week 2', rank: currentRank + 3, bookings: 4 + (seed % 6) },
+      { week: 'Week 3', rank: currentRank + 1, bookings: 5 + (seed % 7) },
+      { week: 'Week 4', rank: currentRank, bookings: 6 + (seed % 8) },
+    ]
+  };
+};
 
 export const tripDatabase: TripListing[] = [
   // ============ ADVENTURE TRIPS ============
@@ -281,7 +1377,7 @@ export const tripDatabase: TripListing[] = [
     location: 'Los Angeles, CA',
     country: 'USA',
     continent: 'North America',
-    image: 'https://images.unsplash.com/photo-1504450758481-7338bbe7524a?w=800',
+    image: 'https://images.unsplash.com/photo-1574623452334-9e99857bbcd2?w=800',
     price: '$890',
     priceValue: 890,
     dates: 'Feb 8-10, 2025',
@@ -2292,5 +3388,54 @@ export const popularDestinations = [
   { name: 'Portugal', emoji: '🇵🇹', continent: 'Europe' },
   { name: 'Vietnam', emoji: '🇻🇳', continent: 'Asia' },
 ];
+
+// Populate member and ranking data for all trips
+tripDatabase.forEach((trip, index) => {
+  trip.memberData = generateMemberData(index + 1);
+  trip.rankingData = generateRankingData(index + 1, tripDatabase.length);
+});
+
+// Sort trips by ranking for default display
+export const tripsByRanking = [...tripDatabase].sort((a, b) =>
+  (a.rankingData?.currentRank || 999) - (b.rankingData?.currentRank || 999)
+);
+
+// Get trending trips (high trending score)
+export const trendingTrips = [...tripDatabase]
+  .filter(t => (t.rankingData?.trendingScore || 0) >= 70)
+  .sort((a, b) => (b.rankingData?.trendingScore || 0) - (a.rankingData?.trendingScore || 0));
+
+// Get trips with available spots
+export const tripsWithSpots = tripDatabase.filter(t =>
+  (t.memberData?.spotsLeft || 0) > 0
+);
+
+// Get most booked trips
+export const mostBookedTrips = [...tripDatabase]
+  .sort((a, b) => (b.memberData?.totalBooked || 0) - (a.memberData?.totalBooked || 0))
+  .slice(0, 20);
+
+// Get trips by member name (for showing what trips a member is on)
+export const getTripsByMember = (memberName: string) => {
+  return tripDatabase.filter(trip =>
+    trip.memberData?.booked.some(m => m.name === memberName) ||
+    trip.memberData?.signedUp.some(m => m.name === memberName) ||
+    trip.memberData?.saved.some(m => m.name === memberName)
+  );
+};
+
+// Get member's booked trips
+export const getMemberBookedTrips = (memberName: string) => {
+  return tripDatabase.filter(trip =>
+    trip.memberData?.booked.some(m => m.name === memberName)
+  );
+};
+
+// Get member's saved trips
+export const getMemberSavedTrips = (memberName: string) => {
+  return tripDatabase.filter(trip =>
+    trip.memberData?.saved.some(m => m.name === memberName)
+  );
+};
 
 export default tripDatabase;
