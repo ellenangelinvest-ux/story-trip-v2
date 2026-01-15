@@ -1593,8 +1593,8 @@ function LandingScreen({ onStart, onDemo, onAbout, onCreateTrip, onSignIn, onMan
               transition={{ delay: 0.2 }}
               className="mb-10"
             >
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-display text-white/80 leading-relaxed">
-                Your <span className="text-5xl md:text-7xl lg:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-teal-200 to-white">Story</span> Starts with the <span className="text-5xl md:text-7xl lg:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-r from-terra-400 via-terra-300 to-teal-400">Trip</span>
+              <h1 className="text-xl md:text-2xl lg:text-3xl font-display text-white/80 whitespace-nowrap">
+                Your <span className="text-4xl md:text-5xl lg:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-teal-200 to-white">Story</span> Starts with the <span className="text-4xl md:text-5xl lg:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-terra-400 via-terra-300 to-teal-400">Trip</span>
               </h1>
             </motion.div>
 
