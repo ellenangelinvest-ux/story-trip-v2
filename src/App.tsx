@@ -12826,6 +12826,31 @@ function StoryDirectorScreen({
   const [inviteEmail, setInviteEmail] = useState('');
   const [selectedMemberProfile, setSelectedMemberProfile] = useState<AlbumMember | null>(null);
 
+  // Update members when selectedTripSquad changes
+  useEffect(() => {
+    if (selectedTripSquad?.members) {
+      setMembers(
+        selectedTripSquad.members.map((m, i) => ({
+          id: `member-${i}`,
+          name: m.name,
+          avatar: m.avatar,
+          role: i === 0 ? 'admin' as const : 'member' as const,
+          joinedAt: 'Dec 2024',
+          status: i < 2 ? 'active' as const : i === 2 ? 'offline' as const : 'pending' as const,
+          location: m.from,
+          nationality: m.nationality,
+          age: m.age,
+          relationshipStatus: m.relationshipStatus,
+          bio: m.bio,
+          travelStyle: m.travelStyle,
+          sportInterests: m.sportInterests,
+          mbtiType: m.mbtiType,
+        }))
+      );
+      setSelectedSquad(selectedTripSquad);
+    }
+  }, [selectedTripSquad]);
+
   // Chat state
   const [chatMode, setChatMode] = useState<'group' | 'private'>('group');
   const [privateChatWith, setPrivateChatWith] = useState<AlbumMember | null>(null);
