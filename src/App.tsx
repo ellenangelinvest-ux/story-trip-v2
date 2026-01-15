@@ -1586,28 +1586,17 @@ function LandingScreen({ onStart, onDemo, onAbout, onCreateTrip, onSignIn, onMan
               <span className="text-teal-300 text-sm font-medium">AI-Powered Travel Planning</span>
             </motion.div>
 
-            {/* Brand Name - Big & Bold */}
+            {/* Combined Brand + Tagline in One Line */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="mb-4"
+              className="mb-10"
             >
-              <h1 className="text-6xl md:text-8xl lg:text-9xl font-display font-black tracking-tight">
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-teal-200 to-white">Story</span>
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-terra-400 via-terra-300 to-teal-400">Trip</span>
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-display text-white/80 leading-relaxed">
+                Your <span className="text-5xl md:text-7xl lg:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-teal-200 to-white">Story</span> Starts with the <span className="text-5xl md:text-7xl lg:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-r from-terra-400 via-terra-300 to-teal-400">Trip</span>
               </h1>
             </motion.div>
-
-            {/* Tagline - Story & Trip emphasized */}
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="text-xl md:text-2xl text-white/80 mb-10 max-w-2xl mx-auto"
-            >
-              Your <span className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-300 to-white">Story</span> Starts with the <span className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-terra-400 to-terra-300">Trip</span>
-            </motion.p>
 
             <motion.div
               initial={{ opacity: 0, y: 20 }}
