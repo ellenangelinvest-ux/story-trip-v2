@@ -1614,7 +1614,7 @@ function LandingScreen({ onStart, onDemo, onAbout, onCreateTrip, onSignIn, onMan
               transition={{ delay: 0.6 }}
               className="text-lg text-white/60 mb-10 max-w-xl mx-auto"
             >
-              Tell us your dream. Our AI creates your perfect journey.
+              Tell us your dream. We create your perfect match journey!
             </motion.p>
 
             <motion.div
