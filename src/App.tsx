@@ -2712,6 +2712,7 @@ function App() {
         {screen === 'landing' && (
           <LandingScreen
             key="landing"
+            userProfile={userProfile}
             onStart={() => setScreen('trips')}
             onDemo={() => setScreen('demo')}
             onAbout={() => setScreen('about')}
@@ -2924,7 +2925,27 @@ function App() {
 }
 
 // ============ LANDING SCREEN ============
-function LandingScreen({ onStart, onDemo, onAbout, onCreateTrip, onSignIn, onManageTrips, onChatStart, onSquad, onFilm, onStoryDirector }: { onStart: () => void; onDemo: () => void; onAbout: () => void; onCreateTrip: () => void; onSignIn: () => void; onManageTrips: () => void; onChatStart: () => void; onSquad: () => void; onFilm: () => void; onStoryDirector: () => void }) {
+function LandingScreen({ userProfile, onStart, onDemo, onAbout, onCreateTrip, onSignIn, onManageTrips, onChatStart, onSquad, onFilm, onStoryDirector }: { userProfile: UserProfile; onStart: () => void; onDemo: () => void; onAbout: () => void; onCreateTrip: () => void; onSignIn: () => void; onManageTrips: () => void; onChatStart: () => void; onSquad: () => void; onFilm: () => void; onStoryDirector: () => void }) {
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+
+  // Calculate profile completion
+  const getProfileCompletion = () => {
+    const items = [
+      { name: 'Name', completed: !!userProfile.name?.trim(), icon: '👤' },
+      { name: 'Gender', completed: !!userProfile.gender, icon: '⚧️' },
+      { name: 'Nationality', completed: !!userProfile.nationality, icon: '🌍' },
+      { name: 'Interests', completed: userProfile.interests.length > 0, icon: '❤️' },
+      { name: 'Relationship', completed: !!userProfile.relationshipStatus, icon: '💑' },
+      { name: 'Personality', completed: !!userProfile.personality, icon: '🧠' },
+      { name: 'Group Size', completed: !!userProfile.groupPreference, icon: '👥' },
+      { name: 'Travel Dates', completed: !!userProfile.travelDates?.duration, icon: '📅' },
+    ];
+    const completedCount = items.filter(i => i.completed).length;
+    return { items, completedCount, total: items.length, percentage: Math.round((completedCount / items.length) * 100) };
+  };
+
+  const profileCompletion = getProfileCompletion();
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -2999,9 +3020,92 @@ function LandingScreen({ onStart, onDemo, onAbout, onCreateTrip, onSignIn, onMan
             <button onClick={onManageTrips} className="text-white/80 hover:text-white transition-colors flex items-center gap-1">
               <Briefcase className="w-4 h-4" /> My Trips
             </button>
-            <button onClick={onSignIn} className="btn bg-white/20 backdrop-blur-sm text-white border border-white/30 hover:bg-white/30">
-              Sign In
-            </button>
+            {/* Sign In or User Profile Button */}
+            {userProfile.name ? (
+              <div className="relative">
+                <button
+                  onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                  className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm text-white border border-white/30 hover:bg-white/30 rounded-xl transition-all"
+                >
+                  <div className="w-8 h-8 rounded-full bg-teal-500 flex items-center justify-center text-white font-bold text-sm">
+                    {userProfile.name.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="font-medium">{userProfile.name}</span>
+                  <ChevronDown className={`w-4 h-4 transition-transform ${showProfileDropdown ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* Profile Dropdown */}
+                <AnimatePresence>
+                  {showProfileDropdown && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                      className="absolute right-0 top-full mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-cream-200 overflow-hidden z-50"
+                    >
+                      {/* Header */}
+                      <div className="bg-gradient-to-r from-teal-500 to-purple-500 p-4 text-white">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center text-xl font-bold">
+                            {userProfile.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-bold">{userProfile.name}</p>
+                            <p className="text-sm text-white/80">{profileCompletion.percentage}% complete</p>
+                          </div>
+                        </div>
+                        {/* Progress bar */}
+                        <div className="mt-3 h-2 bg-white/20 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-white transition-all duration-500"
+                            style={{ width: `${profileCompletion.percentage}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Completion Items */}
+                      <div className="p-3 max-h-64 overflow-y-auto">
+                        <p className="text-xs text-warm-500 font-medium mb-2 px-1">Profile Sections</p>
+                        <div className="space-y-1">
+                          {profileCompletion.items.map((item, idx) => (
+                            <div
+                              key={idx}
+                              className={`flex items-center gap-3 px-3 py-2 rounded-lg ${
+                                item.completed ? 'bg-green-50' : 'bg-amber-50'
+                              }`}
+                            >
+                              <span className="text-lg">{item.icon}</span>
+                              <span className={`flex-1 text-sm ${item.completed ? 'text-green-700' : 'text-amber-700'}`}>
+                                {item.name}
+                              </span>
+                              {item.completed ? (
+                                <CheckCircle className="w-4 h-4 text-green-500" />
+                              ) : (
+                                <div className="w-4 h-4 rounded-full border-2 border-amber-400" />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="p-3 border-t border-cream-200 bg-cream-50">
+                        <button
+                          onClick={() => { setShowProfileDropdown(false); onSignIn(); }}
+                          className="w-full py-2.5 bg-gradient-to-r from-teal-500 to-purple-500 text-white font-medium rounded-xl hover:shadow-lg transition-all text-sm"
+                        >
+                          {profileCompletion.percentage === 100 ? 'Edit Profile' : 'Continue Profile'}
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ) : (
+              <button onClick={onSignIn} className="btn bg-white/20 backdrop-blur-sm text-white border border-white/30 hover:bg-white/30">
+                Sign In
+              </button>
+            )}
           </div>
         </header>
 
