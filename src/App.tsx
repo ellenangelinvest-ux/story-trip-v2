@@ -3160,7 +3160,7 @@ function LandingScreen({ userProfile, onStart, onDemo, onAbout, onCreateTrip, on
                 className="btn bg-white text-warm-800 text-xl px-12 py-5 shadow-2xl shadow-black/30 hover:shadow-3xl hover:scale-105 transition-all flex items-center justify-center gap-3 rounded-2xl border-2 border-white/50 hover:bg-cream-100"
               >
                 <MessageCircle className="w-6 h-6 text-teal-600" />
-                How can I help?
+                Hi 👋 How can I help?
                 <ChevronRight className="w-5 h-5 text-terra-500" />
               </button>
 
