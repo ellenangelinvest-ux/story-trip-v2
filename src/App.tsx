@@ -1597,24 +1597,14 @@ function LandingScreen({ onStart, onDemo, onAbout, onCreateTrip, onSignIn, onMan
               </h1>
             </motion.div>
 
-            {/* Tagline */}
+            {/* Tagline - Story & Trip emphasized */}
             <motion.p
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="text-2xl md:text-3xl text-white/90 font-light mb-8"
+              className="text-xl md:text-2xl text-white/80 mb-10 max-w-2xl mx-auto"
             >
-              Your Story Starts with the Trip
-            </motion.p>
-
-            {/* Subtext */}
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
-              className="text-lg text-white/60 mb-10 max-w-xl mx-auto"
-            >
-              Tell us your dream. We create your perfect match journey!
+              Your <span className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-300 to-white">Story</span> Starts with the <span className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-terra-400 to-terra-300">Trip</span>
             </motion.p>
 
             <motion.div
