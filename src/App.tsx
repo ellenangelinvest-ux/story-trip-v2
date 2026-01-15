@@ -3678,10 +3678,62 @@ In the meantime, you can browse our 100+ curated trips by going back and explori
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="min-h-screen bg-gradient-to-br from-cream-100 via-cream-50 to-terra-50"
+      className="min-h-screen relative"
     >
+      {/* Travel Theme Background */}
+      <div className="fixed inset-0 z-0">
+        {/* Background Image Collage */}
+        <div className="absolute inset-0 grid grid-cols-4 grid-rows-3 opacity-30">
+          <div className="overflow-hidden">
+            <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400" alt="" className="w-full h-full object-cover" />
+          </div>
+          <div className="overflow-hidden">
+            <img src="https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=400" alt="" className="w-full h-full object-cover" />
+          </div>
+          <div className="overflow-hidden">
+            <img src="https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=400" alt="" className="w-full h-full object-cover" />
+          </div>
+          <div className="overflow-hidden">
+            <img src="https://images.unsplash.com/photo-1551524559-8af4e6624178?w=400" alt="" className="w-full h-full object-cover" />
+          </div>
+          <div className="overflow-hidden">
+            <img src="https://images.unsplash.com/photo-1516426122078-c23e76319801?w=400" alt="" className="w-full h-full object-cover" />
+          </div>
+          <div className="overflow-hidden">
+            <img src="https://images.unsplash.com/photo-1528181304800-259b08848526?w=400" alt="" className="w-full h-full object-cover" />
+          </div>
+          <div className="overflow-hidden">
+            <img src="https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=400" alt="" className="w-full h-full object-cover" />
+          </div>
+          <div className="overflow-hidden">
+            <img src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=400" alt="" className="w-full h-full object-cover" />
+          </div>
+          <div className="overflow-hidden">
+            <img src="https://images.unsplash.com/photo-1551632811-561732d1e306?w=400" alt="" className="w-full h-full object-cover" />
+          </div>
+          <div className="overflow-hidden">
+            <img src="https://images.unsplash.com/photo-1559128010-7c1ad6e1b6a5?w=400" alt="" className="w-full h-full object-cover" />
+          </div>
+          <div className="overflow-hidden">
+            <img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400" alt="" className="w-full h-full object-cover" />
+          </div>
+          <div className="overflow-hidden">
+            <img src="https://images.unsplash.com/photo-1530789253388-582c481c54b0?w=400" alt="" className="w-full h-full object-cover" />
+          </div>
+        </div>
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-br from-teal-50/95 via-cream-50/90 to-purple-50/95" />
+        {/* Decorative Elements */}
+        <div className="absolute top-20 left-10 text-6xl opacity-10 animate-bounce" style={{ animationDuration: '3s' }}>✈️</div>
+        <div className="absolute top-40 right-20 text-5xl opacity-10 animate-bounce" style={{ animationDuration: '4s', animationDelay: '1s' }}>🌴</div>
+        <div className="absolute bottom-40 left-20 text-5xl opacity-10 animate-bounce" style={{ animationDuration: '3.5s', animationDelay: '0.5s' }}>🏔️</div>
+        <div className="absolute bottom-20 right-10 text-6xl opacity-10 animate-bounce" style={{ animationDuration: '4.5s', animationDelay: '1.5s' }}>🌊</div>
+        <div className="absolute top-1/2 left-5 text-4xl opacity-10 animate-bounce" style={{ animationDuration: '5s', animationDelay: '2s' }}>🗺️</div>
+        <div className="absolute top-1/3 right-5 text-4xl opacity-10 animate-bounce" style={{ animationDuration: '4s', animationDelay: '0.8s' }}>🧳</div>
+      </div>
+
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-cream-100/90 backdrop-blur-md p-4 flex items-center justify-between border-b border-cream-300">
+      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md p-4 flex items-center justify-between border-b border-teal-200 shadow-sm">
         <button onClick={onBack} className="flex items-center gap-2 text-warm-600 hover:text-warm-800 transition-colors">
           <ChevronLeft className="w-5 h-5" />
           Back
@@ -3699,7 +3751,7 @@ In the meantime, you can browse our 100+ curated trips by going back and explori
       </header>
 
       {/* Chat Container */}
-      <div className="max-w-2xl mx-auto px-4 py-6 pb-40">
+      <div className="relative z-10 max-w-2xl mx-auto px-4 py-6 pb-40">
         <div className="space-y-4">
           <AnimatePresence>
             {messages.map((message) => (
@@ -3984,7 +4036,7 @@ In the meantime, you can browse our 100+ curated trips by going back and explori
 
       {/* Input Area - Fixed at bottom */}
       {!hasRecommended && (
-        <div className="fixed bottom-0 left-0 right-0 bg-cream-100/95 backdrop-blur-md border-t border-cream-300 p-4">
+        <div className="fixed bottom-0 left-0 right-0 z-20 bg-white/90 backdrop-blur-md border-t border-teal-200 p-4 shadow-lg">
           <div className="max-w-2xl mx-auto">
             {/* Action Buttons */}
             {messages.length > 2 && !isTyping && (
@@ -4046,7 +4098,7 @@ In the meantime, you can browse our 100+ curated trips by going back and explori
 
       {/* After recommendations - show option to start over */}
       {hasRecommended && (
-        <div className="fixed bottom-0 left-0 right-0 bg-cream-100/95 backdrop-blur-md border-t border-cream-300 p-4">
+        <div className="fixed bottom-0 left-0 right-0 z-20 bg-white/90 backdrop-blur-md border-t border-teal-200 p-4 shadow-lg">
           <div className="max-w-2xl mx-auto text-center">
             <p className="text-warm-600 text-sm mb-3">Want to explore different options?</p>
             <motion.button
