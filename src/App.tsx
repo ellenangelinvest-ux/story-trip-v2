@@ -1570,36 +1570,51 @@ function LandingScreen({ onStart, onDemo, onAbout, onCreateTrip, onSignIn, onMan
         {/* Hero */}
         <main className="flex-1 flex items-center justify-center px-6">
           <div className="text-center max-w-4xl">
-            <motion.p
+            {/* AI Badge */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.1 }}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md rounded-full border border-white/20 mb-6"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-500"></span>
+              </span>
+              <span className="text-teal-300 text-sm font-medium">AI-Powered Travel Planning</span>
+            </motion.div>
+
+            {/* Brand Name - Big & Bold */}
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="text-teal-300 font-medium tracking-widest uppercase mb-4"
+              className="mb-4"
             >
-              Your Journey. Your Story. Your Film.
-            </motion.p>
+              <h1 className="text-6xl md:text-8xl lg:text-9xl font-display font-black tracking-tight">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-teal-200 to-white">Story</span>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-terra-400 via-terra-300 to-teal-400">Trip</span>
+              </h1>
+            </motion.div>
 
-            <motion.h1
+            {/* Tagline */}
+            <motion.p
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="text-5xl md:text-7xl font-display font-bold text-white mb-6 leading-tight"
+              className="text-2xl md:text-3xl text-white/90 font-light mb-8"
             >
-              Travel That Tells
-              <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-300 to-terra-400">
-                Your Story
-              </span>
-            </motion.h1>
+              Your Story Starts with the Trip
+            </motion.p>
 
+            {/* Subtext */}
             <motion.p
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
-              className="text-xl text-white/80 mb-10 max-w-2xl mx-auto"
+              className="text-lg text-white/60 mb-10 max-w-xl mx-auto"
             >
-              Choose your narrative. Find your squad. Live your adventure.
-              Come home with a documentary-quality film of your journey.
+              Tell us your dream. Our AI creates your perfect journey.
             </motion.p>
 
             <motion.div
