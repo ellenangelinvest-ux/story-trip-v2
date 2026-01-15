@@ -1591,12 +1591,22 @@ function LandingScreen({ onStart, onDemo, onAbout, onCreateTrip, onSignIn, onMan
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="mb-10 w-full px-4"
+              className="mb-6 w-full px-4"
             >
               <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-display text-white/80 whitespace-nowrap text-center" style={{ fontSize: 'clamp(1.2rem, 4vw, 3rem)' }}>
                 Your <span className="font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-teal-200 to-white" style={{ fontSize: 'clamp(2rem, 8vw, 6rem)' }}>Story</span> Starts with the <span className="font-black text-transparent bg-clip-text bg-gradient-to-r from-terra-400 via-terra-300 to-teal-400" style={{ fontSize: 'clamp(2rem, 8vw, 6rem)' }}>Trip</span>
               </h1>
             </motion.div>
+
+            {/* Subtitle */}
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="text-xl md:text-2xl text-white/70 mb-10"
+            >
+              Tell us your Dream, we create the journey!
+            </motion.p>
 
             <motion.div
               initial={{ opacity: 0, y: 20 }}
