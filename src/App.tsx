@@ -7,7 +7,7 @@ import {
   Clock, Coffee, Sun, Moon, Sunset, Video, Copy, Instagram, Twitter, Filter,
   Utensils, Building, ShoppingBag, TreePine, Waves, Camera as CameraIcon, Music,
   Landmark, Wine, Car, Info, ArrowRight, Pause, SkipForward, Settings, Eye, Briefcase,
-  Send, Mail, Edit3, ThumbsUp, ThumbsDown, Link, Brain
+  Send, Mail, Edit3, ThumbsUp, ThumbsDown, Link, Brain, CheckCircle
 } from 'lucide-react';
 import './index.css';
 import { tripDatabase, getTripsSummaryForAI, generateExternalSearchLinks, TripListing, memberProfiles, MemberProfile } from './tripDatabase';
@@ -2607,16 +2607,36 @@ function App() {
   const [selectedCaption, setSelectedCaption] = useState<Caption | null>(null);
   const [showProModal, setShowProModal] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [userProfile, setUserProfile] = useState<UserProfile>({
-    name: '',
-    gender: null,
-    nationality: null,
-    interests: [],
-    personality: null,
-    relationshipStatus: null,
-    travelDates: null,
-    budgetRange: null,
-    groupPreference: null,
+  const [userProfile, setUserProfile] = useState<UserProfile>(() => {
+    const saved = localStorage.getItem('storyTrip_userProfile');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return {
+          name: '',
+          gender: null,
+          nationality: null,
+          interests: [],
+          personality: null,
+          relationshipStatus: null,
+          travelDates: null,
+          budgetRange: null,
+          groupPreference: null,
+        };
+      }
+    }
+    return {
+      name: '',
+      gender: null,
+      nationality: null,
+      interests: [],
+      personality: null,
+      relationshipStatus: null,
+      travelDates: null,
+      budgetRange: null,
+      groupPreference: null,
+    };
   });
   const [userEmail, setUserEmail] = useState<string | null>(() => {
     const saved = localStorage.getItem('storyTrip_userEmail');
@@ -2651,8 +2671,8 @@ function App() {
     setBookedTrips(updated);
     localStorage.setItem('storyTrip_bookedTrips', JSON.stringify(updated));
     setSelectedSquad(squad);
-    // Navigate to Story Studio Director to create album/videos
-    setScreen('memory-maker');
+    // Navigate to Your Story Director page
+    setScreen('story-director');
   };
 
   const handleSaveForLater = (squad: Squad) => {
@@ -2891,6 +2911,7 @@ function App() {
             bookedTrips={bookedTrips}
             onBack={() => setScreen('landing')}
             userEmail={userEmail}
+            userProfile={userProfile}
             onSaveEmail={handleSaveEmail}
             onShowProModal={() => setShowProModal(true)}
           />
@@ -9433,6 +9454,29 @@ function SquadBrowseScreen({ squads, trips, userProfile, onViewTrip, onJoinTrip,
           </p>
         </div>
 
+        {/* Signed In User Banner */}
+        {profileCompleteness === 100 && userProfile.name && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-gradient-to-r from-teal-50 to-purple-50 border border-teal-200 rounded-2xl p-4 mb-6"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-teal-600 text-white flex items-center justify-center text-xl font-bold">
+                {userProfile.name.charAt(0).toUpperCase()}
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-warm-900">Welcome, {userProfile.name}!</p>
+                <p className="text-sm text-warm-600">Your profile is complete - we're finding your best matches</p>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-teal-700 bg-teal-100 px-3 py-1.5 rounded-full">
+                <CheckCircle className="w-4 h-4" />
+                <span>Profile Complete</span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {/* Profile Completion Banner */}
         {profileCompleteness < 100 && (
           <motion.div
@@ -12537,6 +12581,7 @@ function StoryDirectorScreen({
   bookedTrips,
   onBack,
   userEmail,
+  userProfile,
   onSaveEmail,
   onShowProModal
 }: {
@@ -12546,6 +12591,7 @@ function StoryDirectorScreen({
   bookedTrips: { trip: Trip; squad: Squad; bookedAt: string; status: 'booked' | 'saved' }[];
   onBack: () => void;
   userEmail: string | null;
+  userProfile: UserProfile;
   onSaveEmail: (email: string) => void;
   onShowProModal: () => void;
 }) {
@@ -13035,6 +13081,29 @@ As we made our way home, we carried with us more than just souvenirs. We brought
             Let AI help you create the perfect album & video for your memory trip
           </p>
         </div>
+
+        {/* User Profile Banner - shows when signed in */}
+        {userEmail && userProfile.name && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 p-4 bg-gradient-to-r from-teal-50 to-cream-50 rounded-2xl border border-teal-200"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-teal-600 text-white flex items-center justify-center text-xl font-bold">
+                {userProfile.name.charAt(0).toUpperCase()}
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-warm-900">Welcome back, {userProfile.name}!</p>
+                <p className="text-sm text-warm-600">{userEmail}</p>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-teal-700">
+                <CheckCircle className="w-4 h-4" />
+                <span>Profile Saved</span>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {/* Step 1: Select Trip - with Sign-in Reminder */}
         <div className="card p-5 mb-6 bg-gradient-to-r from-cream-50 to-white border-2 border-cream-200">
