@@ -1617,11 +1617,11 @@ function LandingScreen({ onStart, onDemo, onAbout, onCreateTrip, onSignIn, onMan
               {/* Main CTA - Start My Story Button */}
               <button
                 onClick={onChatStart}
-                className="btn bg-gradient-to-r from-terra-500 via-terra-600 to-teal-600 text-white text-xl px-12 py-5 shadow-2xl shadow-terra-500/40 hover:shadow-3xl hover:scale-105 transition-all flex items-center justify-center gap-3 rounded-2xl border-2 border-cream-300/20"
+                className="btn bg-white text-warm-800 text-xl px-12 py-5 shadow-2xl shadow-black/30 hover:shadow-3xl hover:scale-105 transition-all flex items-center justify-center gap-3 rounded-2xl border-2 border-white/50 hover:bg-cream-100"
               >
-                <Sparkles className="w-6 h-6" />
-                Start my Story
-                <ChevronRight className="w-5 h-5" />
+                <MessageCircle className="w-6 h-6 text-teal-600" />
+                Let's chat your Story Trip!
+                <ChevronRight className="w-5 h-5 text-terra-500" />
               </button>
 
               {/* Feature Cards */}
