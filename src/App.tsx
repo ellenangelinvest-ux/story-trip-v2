@@ -1494,67 +1494,52 @@ function LandingScreen({ onStart, onDemo, onAbout, onCreateTrip, onSignIn, onMan
       exit={{ opacity: 0 }}
       className="min-h-screen relative overflow-hidden"
     >
-      {/* Photo Collage Background */}
+      {/* Photo Collage Background - Equal sized tiles filling entire screen */}
       <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-to-b from-warm-900/85 via-warm-900/70 to-warm-900/90 z-10" />
+        <div className="absolute inset-0 bg-gradient-to-b from-warm-900/80 via-warm-900/60 to-warm-900/85 z-10" />
 
-        {/* Collage Grid */}
-        <div className="absolute inset-0 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 grid-rows-3 gap-1">
-          {/* Beach/Tropical */}
-          <div className="col-span-2 row-span-2 overflow-hidden">
-            <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800" alt="Beach" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
-          </div>
-          {/* Mountain Adventure */}
+        {/* Equal Grid - 4 columns x 3 rows = 12 photos */}
+        <div className="absolute inset-0 grid grid-cols-3 md:grid-cols-4 grid-rows-3 md:grid-rows-3">
+          {/* Row 1 */}
           <div className="overflow-hidden">
-            <img src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600" alt="Mountains" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
+            <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600" alt="Beach" className="w-full h-full object-cover" />
           </div>
-          {/* City/Cultural */}
           <div className="overflow-hidden">
-            <img src="https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=600" alt="Paris" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
+            <img src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600" alt="Mountains" className="w-full h-full object-cover" />
           </div>
-          {/* Safari/Wildlife */}
-          <div className="col-span-2 overflow-hidden hidden lg:block">
-            <img src="https://images.unsplash.com/photo-1516426122078-c23e76319801?w=800" alt="Safari" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
-          </div>
-          {/* Skiing */}
           <div className="overflow-hidden">
-            <img src="https://images.unsplash.com/photo-1551524559-8af4e6624178?w=600" alt="Skiing" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
+            <img src="https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=600" alt="Paris" className="w-full h-full object-cover" />
           </div>
-          {/* Wellness/Spa */}
-          <div className="overflow-hidden">
-            <img src="https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=600" alt="Wellness" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
-          </div>
-          {/* Road Trip */}
-          <div className="col-span-2 overflow-hidden">
-            <img src="https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800" alt="Road Trip" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
-          </div>
-          {/* Food/Culinary */}
           <div className="overflow-hidden hidden md:block">
-            <img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600" alt="Food" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
+            <img src="https://images.unsplash.com/photo-1516426122078-c23e76319801?w=600" alt="Safari" className="w-full h-full object-cover" />
           </div>
-          {/* Hiking */}
-          <div className="overflow-hidden hidden md:block">
-            <img src="https://images.unsplash.com/photo-1551632811-561732d1e306?w=600" alt="Hiking" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
-          </div>
-          {/* Tropical Island */}
-          <div className="col-span-2 row-span-1 overflow-hidden">
-            <img src="https://images.unsplash.com/photo-1559128010-7c1ad6e1b6a5?w=800" alt="Island" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
-          </div>
-          {/* Sports/Stadium */}
-          <div className="overflow-hidden hidden lg:block">
-            <img src="https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?w=600" alt="Sports" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
-          </div>
-          {/* Desert */}
-          <div className="overflow-hidden hidden lg:block">
-            <img src="https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=600" alt="Desert" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
-          </div>
-          {/* Cruise */}
-          <div className="overflow-hidden hidden md:block">
-            <img src="https://images.unsplash.com/photo-1548574505-5e239809ee19?w=600" alt="Cruise" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
-          </div>
-          {/* Temple/Culture */}
+
+          {/* Row 2 */}
           <div className="overflow-hidden">
-            <img src="https://images.unsplash.com/photo-1528181304800-259b08848526?w=600" alt="Temple" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
+            <img src="https://images.unsplash.com/photo-1551524559-8af4e6624178?w=600" alt="Skiing" className="w-full h-full object-cover" />
+          </div>
+          <div className="overflow-hidden">
+            <img src="https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=600" alt="Wellness" className="w-full h-full object-cover" />
+          </div>
+          <div className="overflow-hidden">
+            <img src="https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=600" alt="Road Trip" className="w-full h-full object-cover" />
+          </div>
+          <div className="overflow-hidden hidden md:block">
+            <img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600" alt="Food" className="w-full h-full object-cover" />
+          </div>
+
+          {/* Row 3 */}
+          <div className="overflow-hidden">
+            <img src="https://images.unsplash.com/photo-1551632811-561732d1e306?w=600" alt="Hiking" className="w-full h-full object-cover" />
+          </div>
+          <div className="overflow-hidden">
+            <img src="https://images.unsplash.com/photo-1559128010-7c1ad6e1b6a5?w=600" alt="Island" className="w-full h-full object-cover" />
+          </div>
+          <div className="overflow-hidden">
+            <img src="https://images.unsplash.com/photo-1528181304800-259b08848526?w=600" alt="Temple" className="w-full h-full object-cover" />
+          </div>
+          <div className="overflow-hidden hidden md:block">
+            <img src="https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?w=600" alt="Sports" className="w-full h-full object-cover" />
           </div>
         </div>
       </div>
