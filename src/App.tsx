@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, Users, Camera, Upload, Share2, Play, Lock, Check, ChevronRight, ChevronLeft, ChevronDown,
@@ -3315,7 +3315,65 @@ RULES:
     chatEndRef[0]?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Call Gemini API
+  // Rate limiting helpers for Gemini API
+  const lastRequestTimeRef = useRef<number>(0);
+  const MIN_REQUEST_INTERVAL = 4000; // 4 seconds between requests (safe for free tier)
+
+  // Sleep/delay helper
+  const sleep = (ms: number): Promise<void> => {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  };
+
+  // Exponential backoff retry wrapper
+  const fetchWithRetry = async (
+    url: string,
+    options: RequestInit,
+    maxRetries: number = 3,
+    baseDelay: number = 5000
+  ): Promise<Response> => {
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      // Enforce minimum interval between requests
+      const now = Date.now();
+      const timeSinceLastRequest = now - lastRequestTimeRef.current;
+      if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
+        const waitTime = MIN_REQUEST_INTERVAL - timeSinceLastRequest;
+        console.log(`Rate limiting: waiting ${waitTime}ms before next request`);
+        await sleep(waitTime);
+      }
+
+      try {
+        lastRequestTimeRef.current = Date.now();
+        const response = await fetch(url, options);
+
+        // If rate limited (429), wait and retry with exponential backoff
+        if (response.status === 429 && attempt < maxRetries) {
+          const delay = baseDelay * Math.pow(2, attempt); // 5s, 10s, 20s
+          console.log(`Rate limited (429). Attempt ${attempt + 1}/${maxRetries + 1}. Waiting ${delay / 1000}s before retry...`);
+          setIsRateLimited(true);
+          await sleep(delay);
+          setIsRateLimited(false);
+          continue;
+        }
+
+        return response;
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error('Unknown error');
+
+        if (attempt < maxRetries) {
+          const delay = baseDelay * Math.pow(2, attempt);
+          console.log(`Network error. Attempt ${attempt + 1}/${maxRetries + 1}. Waiting ${delay / 1000}s before retry...`);
+          await sleep(delay);
+          continue;
+        }
+      }
+    }
+
+    throw lastError || new Error('Max retries exceeded');
+  };
+
+  // Call Gemini API with retry logic
   const callGeminiAPI = async (userMessage: string): Promise<{
     content: string;
     suggestions: string[];
@@ -3339,52 +3397,56 @@ RULES:
     }
 
     try {
-      // Use gemini-2.0-flash for better quality responses
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [
-            // System instruction as first message
-            {
-              role: 'user',
-              parts: [{ text: systemPrompt }]
-            },
-            {
-              role: 'model',
-              parts: [{ text: 'I understand. I am a travel consultant for StoryTrip. I will have natural conversations, ask thoughtful questions, share travel insights, and recommend trips from our database when appropriate.' }]
-            },
-            // Previous conversation history
-            ...geminiHistory,
-            // Current user message
-            {
-              role: 'user',
-              parts: [{ text: userMessage }]
+      // Use gemini-2.0-flash with retry logic for rate limiting
+      const response = await fetchWithRetry(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [
+              // System instruction as first message
+              {
+                role: 'user',
+                parts: [{ text: systemPrompt }]
+              },
+              {
+                role: 'model',
+                parts: [{ text: 'I understand. I am a travel consultant for StoryTrip. I will have natural conversations, ask thoughtful questions, share travel insights, and recommend trips from our database when appropriate.' }]
+              },
+              // Previous conversation history
+              ...geminiHistory,
+              // Current user message
+              {
+                role: 'user',
+                parts: [{ text: userMessage }]
+              }
+            ],
+            generationConfig: {
+              temperature: 0.9,
+              topK: 40,
+              topP: 0.95,
+              maxOutputTokens: 1500,
             }
-          ],
-          generationConfig: {
-            temperature: 0.9,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 1500,
-          }
-        })
-      });
+          })
+        },
+        3, // maxRetries
+        5000 // baseDelay (5 seconds)
+      );
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         console.error('Gemini API error:', response.status, errorData);
 
-        // Handle rate limiting (429 error)
+        // If still rate limited after all retries
         if (response.status === 429) {
           setIsRateLimited(true);
-          // Clear rate limit after 30 seconds
-          setTimeout(() => setIsRateLimited(false), 30000);
+          setTimeout(() => setIsRateLimited(false), 60000); // Wait longer after exhausting retries
           return {
-            content: "I'm getting a lot of requests right now. Please wait about 30 seconds before sending another message. The Gemini API has rate limits on free tier usage.",
-            suggestions: [] // No suggestions to prevent more requests
+            content: "I'm still getting rate limited after several retries. Please wait about a minute before trying again. Consider upgrading to a paid Gemini API tier for higher limits.",
+            suggestions: []
           };
         }
 
